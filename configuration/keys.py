@@ -1,0 +1,37 @@
+NAME = "name"
+BASELINE_YEAR = "baseline_year"
+TARGET_YEAR = "target_year"
+WAY_POINTS = "waypoints"
+AREA = "area"
+PROTEIN = "protein"
+
+FORESTRY = "forestry"
+FORESTRY_AFFORESTATION = "afforestation"
+FORESTRY_EXISTING_FOREST = "existing_forest"
+
+ORGANIC_SOILS = "organic_soils"
+ORGANIC_SOILS_DRAINAGE_STATUS = "drainage_status"
+ORGANIC_SOILS_ORGANIC_SOIL_UNDER_GRASS = "Organic soil under grass"
+ORGANIC_SOILS_NEAR_NATURAL_WETLANDS = "Near natural wetlands"
+ORGANIC_SOILS_INDUSTRIAL_PEAT = "Industrial peat"
+ORGANIC_SOILS_DOMESTIC_PEAT = "Domestic peat"
+
+NON_CATTLE_AGRICULTURE = "non_cattle_agriculture"
+NON_CATTLE_AGRICULTURE_PIGS = "Pigs"
+NON_CATTLE_AGRICULTURE_POULTRY = "Poultry"
+NON_CATTLE_AGRICULTURE_SHEEP = "Sheep"
+NON_CATTLE_AGRICULTURE_CROPS = "Crops"
+
+CATTLE_AGRICULTURE = "cattle_systems"
+CATTLE_AGRICULTURE_BEEF = "Beef"
+CATTLE_AGRICULTURE_DAIRY = "Dairy"
+CATTLE_AGRICULTURE_PROTEIN_MILK = "protein_milk"
+CATTLE_AGRICULTURE_PROTEIN_BEEF = "protein_beef"
+
+AGRICULTURE_BASELINE_ABATEMENT = "abatement"
+AGRICULTURE_BASELINE_PRODUCTIVITY = "productivity"
+
+TABLE_NON_CATTLE="non_cattle"
+TABLE_CATTLE="cattle"
+
+AD_EMISSIONS = "ad_emissions"
