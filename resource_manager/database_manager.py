@@ -167,3 +167,111 @@ class DatabaseManager:
             kwargs[metric[i].lower() + "_unit"] = unit[i]
 
         return kwargs
+
+    def get_ad_emissions(self, implementation_year, ccs, additional_biomethane_year, additional_grass_biomethane, willow_year, cdr_bioenergy):
+        implementation_offset = 2030 # year in the dataset when biomethane strategy is implemented
+        additional_biomethane_offset = 2035
+        additional_biomethane_scaler = 1000.0
+        willow_offset = 2040
+        willow_scaler = 1000.0
+
+        query = """
+            SELECT
+                biomethane_energy,
+                area,
+                hnv_area,
+                co2_emissions,
+                ch4_emissions,
+                n2o_emissions,
+                co2_substitution_credit,
+                ch4_substitution_credit,
+                n2o_substitution_credit,
+            	BECCS
+            FROM ad_biomethane_strategy
+            WHERE ccs = ?
+        """
+        ccs = "yes" if ccs else "no"
+        params = (ccs,)
+        df = pd.read_sql_query(query, self.conn, params=params)
+
+        kwargs = df.to_dict(orient="list")
+        offset = implementation_offset - implementation_year
+        while offset < 0:
+            for _, values in kwargs.items():
+                del values[0]
+            offset += 1
+        while offset > 0:
+            for key, values in kwargs.items():
+                kwargs[key] = [values[0]] + values
+            offset -= 1
+
+        query = """
+            SELECT
+                biomethane_energy,
+                grass_dry_matter,
+                area,
+                hnv_area,
+                co2_emissions,
+                ch4_emissions,
+                n20_emissions,
+                nh3_emissions,
+                n_to_water_emissions,
+                p_to_water_emissions,
+                co2_emission_credit,
+                beccs
+            FROM additional_ad
+            WHERE ccs = ?
+        """
+        df = pd.read_sql_query(query, self.conn, params=params)
+
+        additional_kwargs = df.to_dict(orient="list")
+        offset = additional_biomethane_year - additional_biomethane_offset
+        while offset < 0:
+            for key, values in additional_kwargs.items():
+                del values[0]
+            offset += 1
+        while offset > 0:
+            for key, values in additional_kwargs.items():
+                additional_kwargs[key] = [values[0]] + values
+            offset -= 1
+
+        scaler = additional_grass_biomethane / additional_biomethane_scaler
+        for key, values in additional_kwargs.items():
+            if isinstance(values[0], int) or isinstance(values[0], float):
+                for i in range(len(values)):
+                    values[i] *= scaler
+            kwargs["additional_" + key] = values
+
+        query = """
+            SELECT
+                willow,
+                willow_dry_matter,
+                area,
+                hnv_area,
+                lulucf_emissions_credit,
+                substitution_credit,
+                BECCS            
+            FROM willow_beccs
+            WHERE ccs = ?
+        """
+        df = pd.read_sql_query(query, self.conn, params=params)
+
+        willow_kwargs = df.to_dict(orient="list")
+        offset = willow_year - willow_offset
+        while offset < 0:
+            for _, values in willow_kwargs.items():
+                del values[0]
+            offset += 1
+        while offset > 0:
+            for key, values in willow_kwargs.items():
+                willow_kwargs[key] = [values[0]] + values
+            offset -= 1
+
+        scaler = cdr_bioenergy / willow_scaler
+        for key, values in willow_kwargs.items():
+            if isinstance(values[0], int) or isinstance(values[0], float):
+                for i in range(len(values)):
+                    values[i] *= scaler
+            kwargs["willow_" + key] = values
+
+        return kwargs

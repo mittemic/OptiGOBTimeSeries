@@ -36,7 +36,7 @@ class OrganicSoilSystem(WayPointSystem):
                         parameters[key] = [value * st.area]
                 else:
                     parameters[st.drainage_status + "_" + key] = [value]
-        self.time_series = parameters
+        super().init_timeseries(parameters)
 
     def load_data(self, db_manager):
         soil_types = []

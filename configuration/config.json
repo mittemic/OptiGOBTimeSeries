@@ -155,7 +155,6 @@
       {
         "year": 2030,
         "abatement": "MACC",
-        "productivity": "Medium increase",
         "scaler": 0.9,
         "scale_parameter": "co2e",
         "scale_absolute_or_percentage": false,
@@ -165,7 +164,6 @@
       {
         "year": 2050,
         "abatement": "MACC",
-        "productivity": "Strong increase",
         "scaler": 0.6,
         "scale_parameter": "co2e",
         "scale_absolute_or_percentage": false,
@@ -176,7 +174,12 @@
   },
 
   "ad_emissions": {
-
+    "implementation_year": 2030,
+    "ccs": false,
+    "additional_biomethane_year": 2030,
+    "additional_grass_biomethane": 10.0,
+    "willow_year": 2050,
+    "cdr_bioenergy": 10.0
   }
 
 }

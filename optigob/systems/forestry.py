@@ -12,9 +12,6 @@ class ForestrySystem(System):
     def load_data(self, db_manager):
         self.init_nz_metrics(db_manager)
 
-    def init_timeseries(self, parameters):
-        self.time_series = parameters
-
     def init_nz_metrics(self, db_manager):
         self.nz_metrics = db_manager.get_nz_metrics(self.name, self.ccs)
 

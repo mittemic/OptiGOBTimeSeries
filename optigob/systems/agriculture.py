@@ -17,7 +17,7 @@ class AgricultureSystem(WayPointSystem):
     baseline_productivity: str
 
     def init_timeseries(self, parameters):
-        self.time_series = parameters
+        super().init_timeseries(parameters)
 
         for key, value in self.time_series.items():
             if not type(self.time_series[key]) is list:

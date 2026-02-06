@@ -8,6 +8,7 @@ from optigob.systems.cattle_agriculture import CattleAgriculture
 from optigob.systems.forestry import Forestry
 from optigob.systems.non_cattle_agriculture import NonCattleAgriculture
 from optigob.systems.organic_soils import OrganicSoils
+from optigob.systems.ad_emissions import AnaerobicDigestion
 
 
 class Optigob:
@@ -21,14 +22,17 @@ class Optigob:
         if FORESTRY in json_config:
             self.fields.append(Forestry(json_config[FORESTRY]))
 
-        if ORGANIC_SOILS in json_config:
-            self.fields.append(OrganicSoils(json_config[ORGANIC_SOILS]))
-
         if NON_CATTLE_AGRICULTURE in json_config:
             self.fields.append(NonCattleAgriculture(json_config[NON_CATTLE_AGRICULTURE]))
 
         if CATTLE_AGRICULTURE in json_config:
             self.fields.append((CattleAgriculture(json_config[CATTLE_AGRICULTURE])))
+
+        if ORGANIC_SOILS in json_config:
+            self.fields.append(OrganicSoils(json_config[ORGANIC_SOILS]))
+
+        if AD_EMISSIONS in json_config:
+            self.fields.append(AnaerobicDigestion(json_config[AD_EMISSIONS]))
 
         for fi in self.fields:
             fi.load_data(self.db_manager)

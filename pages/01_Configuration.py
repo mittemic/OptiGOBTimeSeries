@@ -293,6 +293,99 @@ for o in organic_soils:
         o.pop("waypoints", None)
 
 # -------------------------
+# AD Emissions
+# -------------------------
+
+st.header("Anaerobic Digestion")
+
+implement_ad = st.checkbox(
+    "Implement biomethane strategy",
+    value=False,
+    key="ad_implement",
+)
+
+ad_emissions = None
+
+if implement_ad:
+    with st.expander("Anaerobic Digestion", expanded=False):
+        col1, col2 = st.columns(2)
+
+        with col1:
+            implementation_year = st.number_input(
+                "Biomethane strategy implementation year",
+                min_value=2020,
+                max_value=2120,
+                value=2030,
+                step=1,
+                key="ad_impl_year",
+            )
+
+        with col2:
+            ccs = st.checkbox(
+                "Enable CCS",
+                value=False,
+                key="ad_ccs",
+            )
+
+        st.divider()
+
+        col3, col4 = st.columns(2)
+
+        with col3:
+            additional_grass_biomethane = st.number_input(
+                "Additional grass biomethane (GWh)",
+                min_value=0.0,
+                max_value=20000.0,
+                step=10.0,
+                value=0.0,
+                key="ad_grass_biomethane",
+            )
+
+        with col4:
+            additional_biomethane_year = st.number_input(
+                "Year additional biomethane is achieved",
+                min_value=2020,
+                max_value=2120,
+                value=2035,
+                step=1,
+                key="ad_biomethane_year",
+            )
+
+        st.divider()
+
+        col5, col6 = st.columns(2)
+
+        with col5:
+            cdr_bioenergy = st.number_input(
+                "Carbon dioxide removal via bioenergy (Mt CO₂)",
+                min_value=0.0,
+                max_value=20.0,
+                step=0.1,
+                value=0.0,
+                key="ad_cdr",
+            )
+
+        with col6:
+            willow_year = st.number_input(
+                "Year carbon dioxide removal is achieved",
+                min_value=2020,
+                max_value=2120,
+                value=2040,
+                step=1,
+                key="ad_willow_year",
+            )
+
+        # Build AD emissions config
+        ad_emissions = {
+            "implementation_year": implementation_year,
+            "ccs": ccs,
+            "additional_biomethane_year": additional_biomethane_year,
+            "additional_grass_biomethane": additional_grass_biomethane,
+            "willow_year": willow_year,
+            "cdr_bioenergy": cdr_bioenergy,
+        }
+
+# -------------------------
 # Build JSON
 # -------------------------
 
@@ -322,6 +415,10 @@ config = {
         "waypoints": cattle_waypoints,
     },
 }
+
+# Only include AD emissions if strategy is implemented
+if ad_emissions is not None:
+    config["ad_emissions"] = ad_emissions
 
 # -------------------------
 # Output

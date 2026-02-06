@@ -7,9 +7,8 @@ class System(ABC):
     name: str
     time_series: dict
 
-    @abstractmethod
     def init_timeseries(self, parameters):
-        pass
+        self.time_series = parameters
 
     @abstractmethod
     def load_data(self, db_manager):
