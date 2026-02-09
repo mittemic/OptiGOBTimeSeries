@@ -1,6 +1,8 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 
+from openpyxl.styles.builtins import total
+
 
 @dataclass
 class System(ABC):
@@ -119,3 +121,36 @@ class Field(ABC):
             else:
                 totals = [x+y for x,y in zip(totals, entries)]
         return totals
+
+    # evaluation methods for the user interface
+    @abstractmethod
+    def get_co2e(self, time_span):
+        pass
+    @abstractmethod
+    def get_area(self, time_span):
+        pass
+    @abstractmethod
+    def get_protein(self, time_span):
+        pass
+    @abstractmethod
+    def get_bio_energy(self, time_span):
+        pass
+    @abstractmethod
+    def get_hwp(self, time_span):
+        pass
+    @abstractmethod
+    def get_substitution(self, time_span):
+        pass
+    @abstractmethod
+    def get_biodiversity(self, time_span):
+        pass
+
+    @staticmethod
+    def get_total(system_list, time_span):
+        sum_list = []
+        for _ in range(time_span):
+            sum_list.append(0)
+        for l in system_list:
+            for i in range(time_span):
+                sum_list[i] += l[i]
+        return sum_list

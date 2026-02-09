@@ -111,3 +111,24 @@ class OrganicSoils(Field):
                                                   waypoints=way_points,
                                                   time_series={},
                                                   soil_types=[]))
+
+    def get_co2e(self, time_span):
+        pass
+
+    def get_area(self, time_span):
+        pass
+
+    def get_protein(self, time_span):
+        pass
+
+    def get_bio_energy(self, time_span):
+        pass
+
+    def get_hwp(self, time_span):
+        pass
+
+    def get_substitution(self, time_span):
+        pass
+
+    def get_biodiversity(self, time_span):
+        pass

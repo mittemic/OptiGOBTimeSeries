@@ -150,3 +150,24 @@ class CattleAgriculture(Field):
                     protein_beef = [x + y for (x, y) in zip(protein_beef, time_series)]
 
         return [("Cattle Protein Milk", protein_milk), ("Cattle Protein Beef", protein_beef)]
+
+    def get_co2e(self, time_span):
+        pass
+
+    def get_area(self, time_span):
+        pass
+
+    def get_protein(self, time_span):
+        pass
+
+    def get_bio_energy(self, time_span):
+        pass
+
+    def get_hwp(self, time_span):
+        pass
+
+    def get_substitution(self, time_span):
+        pass
+
+    def get_biodiversity(self, time_span):
+        pass

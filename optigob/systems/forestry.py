@@ -67,3 +67,24 @@ class Forestry(Field):
         for system in self.systems:
             (_, co2e_emissions) = system.get_co2e()[0]
             system.time_series["co2e"] = co2e_emissions
+
+    def get_co2e(self, time_span):
+        pass
+
+    def get_area(self, time_span):
+        pass
+
+    def get_protein(self, time_span):
+        pass
+
+    def get_bio_energy(self, time_span):
+        pass
+
+    def get_hwp(self, time_span):
+        pass
+
+    def get_substitution(self, time_span):
+        pass
+
+    def get_biodiversity(self, time_span):
+        pass

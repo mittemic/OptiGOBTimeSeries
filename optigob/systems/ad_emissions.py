@@ -30,3 +30,24 @@ class AnaerobicDigestion(Field):
         data[NAME] = AD_EMISSIONS
         data["time_series"] = {}
         self.systems.append(ADSystem(**data))
+
+    def get_co2e(self, time_span):
+        pass
+
+    def get_area(self, time_span):
+        pass
+
+    def get_protein(self, time_span):
+        pass
+
+    def get_bio_energy(self, time_span):
+        pass
+
+    def get_hwp(self, time_span):
+        pass
+
+    def get_substitution(self, time_span):
+        pass
+
+    def get_biodiversity(self, time_span):
+        pass

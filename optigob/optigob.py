@@ -3,6 +3,7 @@ from matplotlib import pyplot as plt
 from configuration.keys import *
 import json
 
+from optigob.systems.abstract_factory import Field
 from resource_manager.database_manager import DatabaseManager
 from optigob.systems.cattle_agriculture import CattleAgriculture
 from optigob.systems.forestry import Forestry
@@ -66,6 +67,26 @@ class Optigob:
         total = []
         time_span = self.target_year - self.baseline_year + 1
 
+        #for f in self.fields:
+        #    field_list = None
+        #    if parameter == CO2E:
+        #        field_list = f.get_co2e(time_span)
+        #    elif parameter == AREA:
+        #        field_list = f.get_area(time_span)
+        #    elif parameter == PROTEIN:
+        #        field_list = f.get_protein(time_span)
+        #    elif parameter == BIO_ENERGY:
+        #        field_list = f.get_bio_energy(time_span)
+        #    elif parameter == HWP:
+        #        field_list = f.get_hwp(time_span)
+        #    elif parameter == SUBSTITUTION:
+        #        field_list = f.get_substitution(time_span)
+        #    elif parameter == BIODIVERSITY:
+        #        field_list = f.get_biodiversity(time_span)
+
+        #    if not field_list is None:
+        #        output_list.extend(field_list)
+
         for fi in self.fields:
             for system in fi.systems:
                 if parameter in system.time_series:
@@ -84,6 +105,12 @@ class Optigob:
                 for (name, time_series) in protein_list:
                     total = [x+y for (x,y) in zip(total, time_series)]
                     output_list.append((name, time_series))
+
+        #totals = []
+        #for (name, values) in output_list:
+        #    if "total" in name:
+        #        totals.append(values)
+        #total = Field.get_total(totals, time_span)
 
         output_list.append(("Total", total))
         return output_list
