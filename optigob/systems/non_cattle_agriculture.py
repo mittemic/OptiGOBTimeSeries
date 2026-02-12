@@ -61,14 +61,25 @@ class NonCattleAgriculture(Field):
                                                 waypoints=way_points,
                                                 time_series={}))
 
-    def get_co2e(self, time_span):
-        pass
-
     def get_area(self, time_span):
-        pass
+        output_list = []
+        for s in self.systems:
+            output_list.append((s.name + "_area", s.time_series["area"]))
+
+        total = super().get_total(output_list, time_span)
+        output_list.append(("total_non_cattle", total))
+
+        return output_list
 
     def get_protein(self, time_span):
-        pass
+        output_list = []
+        for s in self.systems:
+            output_list.append((s.name + "_protein", s.time_series["protein"]))
+
+        total = super().get_total(output_list, time_span)
+        output_list.append(("total_non_cattle", total))
+
+        return output_list
 
     def get_bio_energy(self, time_span):
         pass
@@ -80,4 +91,11 @@ class NonCattleAgriculture(Field):
         pass
 
     def get_biodiversity(self, time_span):
-        pass
+        output_list = []
+        for s in self.systems:
+            output_list.append((s.name + "_hnv_area", s.time_series["hnv_area"]))
+
+        total = super().get_total(output_list, time_span)
+        output_list.append(("total_forestry", total))
+
+        return output_list

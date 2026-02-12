@@ -26,7 +26,6 @@ if config is None:
     st.stop()
 else:
     optigob = Optigob(json_config=config, db_file_path="data/database.db")
-    optigob.apply_scalers()
     optigob.run()
 
 # -------------------------

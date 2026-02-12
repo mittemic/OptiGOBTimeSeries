@@ -1,8 +1,6 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 
-from openpyxl.styles.builtins import total
-
 
 @dataclass
 class System(ABC):
@@ -123,9 +121,15 @@ class Field(ABC):
         return totals
 
     # evaluation methods for the user interface
-    @abstractmethod
     def get_co2e(self, time_span):
-        pass
+        output_list = []
+        for s in self.systems:
+            output_list.append((s.name + "_co2e", s.time_series["co2e"]))
+
+        total = self.get_total(output_list, time_span)
+        output_list.append(("total_" + self.name, total))
+
+        return output_list
     @abstractmethod
     def get_area(self, time_span):
         pass
@@ -150,7 +154,11 @@ class Field(ABC):
         sum_list = []
         for _ in range(time_span):
             sum_list.append(0)
-        for l in system_list:
+        for (n,l) in system_list:
             for i in range(time_span):
                 sum_list[i] += l[i]
         return sum_list
+
+    @staticmethod
+    def transform_to_c02e(co2, n2o, ch4):
+        return co2 + 260 * n2o + 25 * ch4

@@ -131,7 +131,7 @@ class CattleAgriculture(Field):
                                            baseline_year=baseline_year,
                                            target_year=target_year)
 
-    def get_protein(self, time_span):
+    def get_protein2(self, time_span):
         protein_milk = []
         protein_beef = []
 
@@ -151,14 +151,27 @@ class CattleAgriculture(Field):
 
         return [("Cattle Protein Milk", protein_milk), ("Cattle Protein Beef", protein_beef)]
 
-    def get_co2e(self, time_span):
-        pass
-
     def get_area(self, time_span):
-        pass
+        output_list = []
+        for s in self.systems:
+            output_list.append((s.name + "_area_dairy", s.time_series["area_dairy"]))
+            output_list.append((s.name + "_area_beef", s.time_series["area_beef"]))
+
+        total = super().get_total(output_list, time_span)
+        output_list.append(("total_cattle", total))
+
+        return output_list
 
     def get_protein(self, time_span):
-        pass
+        output_list = []
+        for s in self.systems:
+            output_list.append((s.name + "_protein_milk", s.time_series["protein_milk"]))
+            output_list.append((s.name + "_protein_beef", s.time_series["protein_beef"]))
+
+        total = super().get_total(output_list, time_span)
+        output_list.append(("total_cattle", total))
+
+        return output_list
 
     def get_bio_energy(self, time_span):
         pass

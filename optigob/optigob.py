@@ -3,13 +3,13 @@ from matplotlib import pyplot as plt
 from configuration.keys import *
 import json
 
-from optigob.systems.abstract_factory import Field
+from .systems.abstract_factory import Field
 from resource_manager.database_manager import DatabaseManager
-from optigob.systems.cattle_agriculture import CattleAgriculture
-from optigob.systems.forestry import Forestry
-from optigob.systems.non_cattle_agriculture import NonCattleAgriculture
-from optigob.systems.organic_soils import OrganicSoils
-from optigob.systems.ad_emissions import AnaerobicDigestion
+from .systems.cattle_agriculture import CattleAgriculture
+from .systems.forestry import Forestry
+from .systems.non_cattle_agriculture import NonCattleAgriculture
+from .systems.organic_soils import OrganicSoils
+from .systems.ad_emissions import AnaerobicDigestion
 
 
 class Optigob:
@@ -67,52 +67,53 @@ class Optigob:
         total = []
         time_span = self.target_year - self.baseline_year + 1
 
-        #for f in self.fields:
-        #    field_list = None
-        #    if parameter == CO2E:
-        #        field_list = f.get_co2e(time_span)
-        #    elif parameter == AREA:
-        #        field_list = f.get_area(time_span)
-        #    elif parameter == PROTEIN:
-        #        field_list = f.get_protein(time_span)
-        #    elif parameter == BIO_ENERGY:
-        #        field_list = f.get_bio_energy(time_span)
-        #    elif parameter == HWP:
-        #        field_list = f.get_hwp(time_span)
-        #    elif parameter == SUBSTITUTION:
-        #        field_list = f.get_substitution(time_span)
-        #    elif parameter == BIODIVERSITY:
-        #        field_list = f.get_biodiversity(time_span)
+        for f in self.fields:
+            field_list = None
+            if parameter == CO2E:
+                field_list = f.get_co2e(time_span)
+            elif parameter == AREA:
+                field_list = f.get_area(time_span)
+            elif parameter == PROTEIN:
+                field_list = f.get_protein(time_span)
+            elif parameter == BIO_ENERGY:
+                field_list = f.get_bio_energy(time_span)
+            elif parameter == HWP:
+                field_list = f.get_hwp(time_span)
+            elif parameter == SUBSTITUTION:
+                field_list = f.get_substitution(time_span)
+            elif parameter == BIODIVERSITY:
+                field_list = f.get_biodiversity(time_span)
 
-        #    if not field_list is None:
-        #        output_list.extend(field_list)
+            if not field_list is None:
+                output_list.extend(field_list)
 
-        for fi in self.fields:
-            for system in fi.systems:
-                if parameter in system.time_series:
-                    system_time_series = system.time_series[parameter][:time_span]
-                    if len(total) == 0:
-                        total = system_time_series
-                    else:
-                        total = [x+y for (x,y) in zip(total, system_time_series)]
-                    output_list.append((system.name, system_time_series))
+        #for fi in self.fields:
+        #    for system in fi.systems:
+        #        if parameter in system.time_series:
+        #            system_time_series = system.time_series[parameter][:time_span]
+        #            if len(total) == 0:
+        #                total = system_time_series
+        #            else:
+        #                total = [x+y for (x,y) in zip(total, system_time_series)]
+        #            output_list.append((system.name, system_time_series))
 
-        if parameter == PROTEIN:
-            f = self.get_field(CATTLE_AGRICULTURE)
-            if not f is None:
-                assert isinstance(f, CattleAgriculture)
-                protein_list =  f.get_protein(time_span)
-                for (name, time_series) in protein_list:
-                    total = [x+y for (x,y) in zip(total, time_series)]
-                    output_list.append((name, time_series))
+        #if parameter == PROTEIN:
+        #    f = self.get_field(CATTLE_AGRICULTURE)
+        #    if not f is None:
+        #        assert isinstance(f, CattleAgriculture)
+        #        protein_list =  f.get_protein2(time_span)
+        #        for (name, time_series) in protein_list:
+        #            total = [x+y for (x,y) in zip(total, time_series)]
+        #            output_list.append((name, time_series))
 
         #totals = []
         #for (name, values) in output_list:
         #    if "total" in name:
-        #        totals.append(values)
-        #total = Field.get_total(totals, time_span)
+        #        totals.append((name,values))
+        #if len(totals) > 0:
+        #    total = Field.get_total(totals, time_span)
 
-        output_list.append(("Total", total))
+        #output_list.append(("Total", total))
         return output_list
 
     def get_field(self, name):
@@ -150,7 +151,3 @@ class Optigob:
         plt.ylabel("parameter")
         plt.legend()
         plt.show()
-
-    @staticmethod
-    def transform_to_c02e(co2, n2o, ch4):
-        return co2 + 260 * n2o + 25 * ch4

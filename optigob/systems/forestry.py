@@ -68,11 +68,15 @@ class Forestry(Field):
             (_, co2e_emissions) = system.get_co2e()[0]
             system.time_series["co2e"] = co2e_emissions
 
-    def get_co2e(self, time_span):
-        pass
-
     def get_area(self, time_span):
-        pass
+        output_list = []
+        for s in self.systems:
+            output_list.append((s.name + "_area", s.time_series["area"]))
+
+        total = super().get_total(output_list, time_span)
+        output_list.append(("total_forestry", total))
+
+        return output_list
 
     def get_protein(self, time_span):
         pass
@@ -81,10 +85,32 @@ class Forestry(Field):
         pass
 
     def get_hwp(self, time_span):
-        pass
+        output_list = []
+        for s in self.systems:
+            output_list.append((s.name + "_harvest_volume", s.time_series["harvest_volume"]))
+
+        total = super().get_total(output_list, time_span)
+        output_list.append(("total_forestry", total))
+
+        return output_list
 
     def get_substitution(self, time_span):
-        pass
+        output_list = []
+        for s in self.systems:
+            output_list.append((s.name + "_hwp_material_substitution_credit", s.time_series["hwp_material_substitution_credit"]))
+            output_list.append((s.name + "_hwp_energy_substitution_credit", s.time_series["hwp_energy_substitution_credit"]))
+
+        total = super().get_total(output_list, time_span)
+        output_list.append(("total_forestry", total))
+
+        return output_list
 
     def get_biodiversity(self, time_span):
-        pass
+        output_list = []
+        for s in self.systems:
+            output_list.append((s.name + "_hnv_area", s.time_series["hnv_area"]))
+
+        total = super().get_total(output_list, time_span)
+        output_list.append(("total_forestry", total))
+
+        return output_list
