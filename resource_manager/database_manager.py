@@ -195,14 +195,16 @@ class DatabaseManager:
         df = pd.read_sql_query(query, self.conn, params=params)
 
         kwargs = df.to_dict(orient="list")
-        offset = implementation_offset - implementation_year
+        offset = implementation_year - implementation_offset
         while offset < 0:
             for _, values in kwargs.items():
                 del values[0]
+                values.append(values[-1])
             offset += 1
         while offset > 0:
             for key, values in kwargs.items():
                 kwargs[key] = [values[0]] + values
+                del kwargs[key][-1]
             offset -= 1
 
         query = """
@@ -229,10 +231,12 @@ class DatabaseManager:
         while offset < 0:
             for key, values in additional_kwargs.items():
                 del values[0]
+                values.append(values[-1])
             offset += 1
         while offset > 0:
             for key, values in additional_kwargs.items():
                 additional_kwargs[key] = [values[0]] + values
+                del additional_kwargs[key][-1]
             offset -= 1
 
         scaler = additional_grass_biomethane / additional_biomethane_scaler
@@ -261,10 +265,12 @@ class DatabaseManager:
         while offset < 0:
             for _, values in willow_kwargs.items():
                 del values[0]
+                values.append(values[-1])
             offset += 1
         while offset > 0:
             for key, values in willow_kwargs.items():
                 willow_kwargs[key] = [values[0]] + values
+                del willow_kwargs[key][-1]
             offset -= 1
 
         scaler = cdr_bioenergy / willow_scaler
