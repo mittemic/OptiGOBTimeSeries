@@ -1,6 +1,7 @@
+import pytest
+
 from optigob.optigob import Optigob
 from configuration.keys import *
-from optigob.systems.ad_emissions import AnaerobicDigestion, ADSystem
 
 db_file_path = "data/database.db"
 
@@ -17,12 +18,49 @@ def test_ad_emissions_not_implemented():
     ad_emissions = optigob.get_field(AD_EMISSIONS)
     assert ad_emissions is None
 
-def test_ad_emissions_ccs():
+@pytest.mark.parametrize(
+    "test_year, ccs, test_metric, expected_result",
+    [
+        (2060, True, "BECCS", -671.732351667945),
+        (2060, False, "BECCS", 0.0)
+    ],
+)
+
+def test_ad_emissions_ccs(test_year, ccs, test_metric, expected_result):
+    config = {
+        "baseline_year": 2020,
+        "target_year": 2100,
+        "ad_emissions": {
+            "implementation_year": 2030,
+            "ccs": ccs,
+            "additional_biomethane_year": 2035,
+            "additional_grass_biomethane": 0,
+            "willow_year": 2040,
+            "cdr_bioenergy": 0
+        }
+    }
+
+    optigob = Optigob(json_config=config, db_file_path=db_file_path)
+    optigob.run()
+
+    ad_emissions = optigob.get_field(AD_EMISSIONS).get_system(AD_EMISSIONS)
+    idx = test_year - optigob.baseline_year
+    assert round(ad_emissions.time_series[test_metric][idx],5) == round(expected_result,5)
+
+@pytest.mark.parametrize(
+    "implementation_year, test_metric, expected_result",
+    [
+        (2025, "biomethane_energy", 5700),
+        (2030, "biomethane_energy", 5700),
+        (2035, "biomethane_energy", 5700)
+    ],
+)
+def test_ad_emissions_biomethane_strategy_implementation_year(implementation_year, test_metric, expected_result):
     config = {
         "baseline_year": 2020,
         "target_year": 2050,
         "ad_emissions": {
-            "implementation_year": 2030,
+            "implementation_year": implementation_year,
             "ccs": False,
             "additional_biomethane_year": 2035,
             "additional_grass_biomethane": 0,
@@ -34,22 +72,29 @@ def test_ad_emissions_ccs():
     optigob = Optigob(json_config=config, db_file_path=db_file_path)
     optigob.run()
 
-    ad_emissions = optigob.get_field(AD_EMISSIONS)
-    assert isinstance(ad_emissions, AnaerobicDigestion)
-    assert len(ad_emissions.systems) == 1
-    ad_system = ad_emissions.systems[0]
-    assert isinstance(ad_system, ADSystem)
-    assert ad_system.ccs == False
-    assert ad_system.time_series["BECCS"][-1] == 0.0
+    ad_emissions = optigob.get_field(AD_EMISSIONS).get_system(AD_EMISSIONS)
+    idx = implementation_year - optigob.baseline_year
+    assert ad_emissions.time_series[test_metric][idx] == expected_result
+    assert ad_emissions.time_series[test_metric][idx - 1] < expected_result
 
+@pytest.mark.parametrize(
+    "additional_biomethane_year, additional_grass_biomethane, test_metric, expected_result",
+    [
+        (2025, 2000.0, "additional_biomethane_energy", 2000.0),
+        (2035, 500.0, "additional_biomethane_energy", 500.0),
+        (2045, 1000.0, "additional_biomethane_energy", 1000.0)
+    ],
+)
+
+def test_ad_emissions_additional_ad(additional_biomethane_year, additional_grass_biomethane, test_metric, expected_result):
     config = {
         "baseline_year": 2020,
         "target_year": 2050,
         "ad_emissions": {
             "implementation_year": 2030,
             "ccs": True,
-            "additional_biomethane_year": 2035,
-            "additional_grass_biomethane": 0,
+            "additional_biomethane_year": additional_biomethane_year,
+            "additional_grass_biomethane": additional_grass_biomethane,
             "willow_year": 2040,
             "cdr_bioenergy": 0
         }
@@ -58,88 +103,21 @@ def test_ad_emissions_ccs():
     optigob = Optigob(json_config=config, db_file_path=db_file_path)
     optigob.run()
 
-    ad_emissions = optigob.get_field(AD_EMISSIONS)
-    assert isinstance(ad_emissions, AnaerobicDigestion)
-    assert len(ad_emissions.systems) == 1
-    ad_system = ad_emissions.systems[0]
-    assert isinstance(ad_system, ADSystem)
-    assert ad_system.ccs == True
-    assert ad_system.time_series["BECCS"][-1] != 0.0
+    ad_emissions = optigob.get_field(AD_EMISSIONS).get_system(AD_EMISSIONS)
+    idx = additional_biomethane_year - optigob.baseline_year
+    assert ad_emissions.time_series[test_metric][idx] == expected_result
+    assert ad_emissions.time_series[test_metric][idx-1] < expected_result
 
-def test_ad_emissions_biomethane_strategy_implementation_year():
-    config = {
-        "baseline_year": 2020,
-        "target_year": 2050,
-        "ad_emissions": {
-            "implementation_year": 2030,
-            "ccs": False,
-            "additional_biomethane_year": 2035,
-            "additional_grass_biomethane": 0,
-            "willow_year": 2040,
-            "cdr_bioenergy": 0
-        }
-    }
+@pytest.mark.parametrize(
+    "willow_year, cdr_bioenergy, test_metric, expected_result",
+    [
+        (2030, 1000.0, "willow_BECCS", 1000.0),
+        (2040, 2000.0, "willow_BECCS", 2000.0),
+        (2060, 300.0, "willow_BECCS", 300.0)
+    ],
+)
 
-    optigob = Optigob(json_config=config, db_file_path=db_file_path)
-    optigob.run()
-
-    ad_emissions = optigob.get_field(AD_EMISSIONS)
-    assert isinstance(ad_emissions, AnaerobicDigestion)
-    assert len(ad_emissions.systems) == 1
-    ad_system = ad_emissions.systems[0]
-    assert isinstance(ad_system, ADSystem)
-    idx = config["ad_emissions"]["implementation_year"] - config["baseline_year"]
-    assert ad_system.time_series["biomethane_energy"][idx] == 5700 and ad_system.time_series["biomethane_energy"][idx - 1] < 5700
-
-    config = {
-        "baseline_year": 2020,
-        "target_year": 2050,
-        "ad_emissions": {
-            "implementation_year": 2035,
-            "ccs": False,
-            "additional_biomethane_year": 2035,
-            "additional_grass_biomethane": 0,
-            "willow_year": 2040,
-            "cdr_bioenergy": 0
-        }
-    }
-
-    optigob = Optigob(json_config=config, db_file_path=db_file_path)
-    optigob.run()
-
-    ad_emissions = optigob.get_field(AD_EMISSIONS)
-    assert isinstance(ad_emissions, AnaerobicDigestion)
-    assert len(ad_emissions.systems) == 1
-    ad_system = ad_emissions.systems[0]
-    assert isinstance(ad_system, ADSystem)
-    idx = config["ad_emissions"]["implementation_year"] - config["baseline_year"]
-    assert ad_system.time_series["biomethane_energy"][idx] == 5700 and ad_system.time_series["biomethane_energy"][idx - 1] < 5700
-
-    config = {
-        "baseline_year": 2020,
-        "target_year": 2050,
-        "ad_emissions": {
-            "implementation_year": 2025,
-            "ccs": False,
-            "additional_biomethane_year": 2035,
-            "additional_grass_biomethane": 0,
-            "willow_year": 2040,
-            "cdr_bioenergy": 0
-        }
-    }
-
-    optigob = Optigob(json_config=config, db_file_path=db_file_path)
-    optigob.run()
-
-    ad_emissions = optigob.get_field(AD_EMISSIONS)
-    assert isinstance(ad_emissions, AnaerobicDigestion)
-    assert len(ad_emissions.systems) == 1
-    ad_system = ad_emissions.systems[0]
-    assert isinstance(ad_system, ADSystem)
-    idx = config["ad_emissions"]["implementation_year"] - config["baseline_year"]
-    assert ad_system.time_series["biomethane_energy"][idx] == 5700 and ad_system.time_series["biomethane_energy"][idx - 1] < 5700
-
-def test_ad_emissions_additional_ad():
+def test_ad_emissions_willow(willow_year, cdr_bioenergy, test_metric, expected_result):
     config = {
         "baseline_year": 2020,
         "target_year": 2050,
@@ -148,151 +126,15 @@ def test_ad_emissions_additional_ad():
             "ccs": True,
             "additional_biomethane_year": 2035,
             "additional_grass_biomethane": 2000.0,
-            "willow_year": 2040,
-            "cdr_bioenergy": 0
+            "willow_year": willow_year,
+            "cdr_bioenergy": cdr_bioenergy
         }
     }
 
     optigob = Optigob(json_config=config, db_file_path=db_file_path)
     optigob.run()
 
-    ad_emissions = optigob.get_field(AD_EMISSIONS)
-    assert isinstance(ad_emissions, AnaerobicDigestion)
-    assert len(ad_emissions.systems) == 1
-    ad_system = ad_emissions.systems[0]
-    assert isinstance(ad_system, ADSystem)
-    idx = config["ad_emissions"]["additional_biomethane_year"] - config["baseline_year"]
-    additional_biomethane = config["ad_emissions"]["additional_grass_biomethane"]
-    assert ad_system.time_series["additional_biomethane_energy"][idx] == additional_biomethane and ad_system.time_series["additional_biomethane_energy"][idx - 1] < additional_biomethane
-
-    config = {
-        "baseline_year": 2020,
-        "target_year": 2050,
-        "ad_emissions": {
-            "implementation_year": 2030,
-            "ccs": True,
-            "additional_biomethane_year": 2045,
-            "additional_grass_biomethane": 500.0,
-            "willow_year": 2040,
-            "cdr_bioenergy": 0
-        }
-    }
-
-    optigob = Optigob(json_config=config, db_file_path=db_file_path)
-    optigob.run()
-
-    ad_emissions = optigob.get_field(AD_EMISSIONS)
-    assert isinstance(ad_emissions, AnaerobicDigestion)
-    assert len(ad_emissions.systems) == 1
-    ad_system = ad_emissions.systems[0]
-    assert isinstance(ad_system, ADSystem)
-    idx = config["ad_emissions"]["additional_biomethane_year"] - config["baseline_year"]
-    additional_biomethane = config["ad_emissions"]["additional_grass_biomethane"]
-    assert ad_system.time_series["additional_biomethane_energy"][idx] == additional_biomethane and ad_system.time_series["additional_biomethane_energy"][idx - 1] < additional_biomethane
-
-    config = {
-        "baseline_year": 2020,
-        "target_year": 2050,
-        "ad_emissions": {
-            "implementation_year": 2030,
-            "ccs": True,
-            "additional_biomethane_year": 2025,
-            "additional_grass_biomethane": 1000.0,
-            "willow_year": 2040,
-            "cdr_bioenergy": 0
-        }
-    }
-
-    optigob = Optigob(json_config=config, db_file_path=db_file_path)
-    optigob.run()
-
-    ad_emissions = optigob.get_field(AD_EMISSIONS)
-    assert isinstance(ad_emissions, AnaerobicDigestion)
-    assert len(ad_emissions.systems) == 1
-    ad_system = ad_emissions.systems[0]
-    assert isinstance(ad_system, ADSystem)
-    idx = config["ad_emissions"]["additional_biomethane_year"] - config["baseline_year"]
-    additional_biomethane = config["ad_emissions"]["additional_grass_biomethane"]
-    assert ad_system.time_series["additional_biomethane_energy"][idx] == additional_biomethane and ad_system.time_series["additional_biomethane_energy"][idx - 1] < additional_biomethane
-
-def test_ad_emissions_willow():
-    config = {
-        "baseline_year": 2020,
-        "target_year": 2050,
-        "ad_emissions": {
-            "implementation_year": 2030,
-            "ccs": True,
-            "additional_biomethane_year": 2035,
-            "additional_grass_biomethane": 2000.0,
-            "willow_year": 2040,
-            "cdr_bioenergy": 1000.0
-        }
-    }
-
-    optigob = Optigob(json_config=config, db_file_path=db_file_path)
-    optigob.run()
-
-    ad_emissions = optigob.get_field(AD_EMISSIONS)
-    assert isinstance(ad_emissions, AnaerobicDigestion)
-    assert len(ad_emissions.systems) == 1
-    ad_system = ad_emissions.systems[0]
-    assert isinstance(ad_system, ADSystem)
-    idx = config["ad_emissions"]["willow_year"] - config["baseline_year"]
-    willow_beccs = config["ad_emissions"]["cdr_bioenergy"]
-    assert ad_system.time_series["willow_BECCS"][idx] == willow_beccs and ad_system.time_series["willow_BECCS"][idx - 1] < willow_beccs
-
-    config = {
-        "baseline_year": 2020,
-        "target_year": 2050,
-        "ad_emissions": {
-            "implementation_year": 2030,
-            "ccs": True,
-            "additional_biomethane_year": 2035,
-            "additional_grass_biomethane": 2000.0,
-            "willow_year": 2060,
-            "cdr_bioenergy": 2000.0
-        }
-    }
-
-    optigob = Optigob(json_config=config, db_file_path=db_file_path)
-    optigob.run()
-
-    ad_emissions = optigob.get_field(AD_EMISSIONS)
-    assert isinstance(ad_emissions, AnaerobicDigestion)
-    assert len(ad_emissions.systems) == 1
-    ad_system = ad_emissions.systems[0]
-    assert isinstance(ad_system, ADSystem)
-    idx = config["ad_emissions"]["willow_year"] - config["baseline_year"]
-    willow_beccs = config["ad_emissions"]["cdr_bioenergy"]
-    assert ad_system.time_series["willow_BECCS"][idx] == willow_beccs and ad_system.time_series["willow_BECCS"][idx - 1] < willow_beccs
-
-    config = {
-        "baseline_year": 2020,
-        "target_year": 2050,
-        "ad_emissions": {
-            "implementation_year": 2030,
-            "ccs": True,
-            "additional_biomethane_year": 2035,
-            "additional_grass_biomethane": 2000.0,
-            "willow_year": 2030,
-            "cdr_bioenergy": 300.0
-        }
-    }
-
-    optigob = Optigob(json_config=config, db_file_path=db_file_path)
-    optigob.run()
-
-    ad_emissions = optigob.get_field(AD_EMISSIONS)
-    assert isinstance(ad_emissions, AnaerobicDigestion)
-    assert len(ad_emissions.systems) == 1
-    ad_system = ad_emissions.systems[0]
-    assert isinstance(ad_system, ADSystem)
-    idx = config["ad_emissions"]["willow_year"] - config["baseline_year"]
-    willow_beccs = config["ad_emissions"]["cdr_bioenergy"]
-    assert ad_system.time_series["willow_BECCS"][idx] == willow_beccs and ad_system.time_series["willow_BECCS"][idx - 1] < willow_beccs
-
-test_ad_emissions_not_implemented()
-test_ad_emissions_ccs()
-test_ad_emissions_biomethane_strategy_implementation_year()
-test_ad_emissions_additional_ad()
-test_ad_emissions_willow()
+    ad_emissions = optigob.get_field(AD_EMISSIONS).get_system(AD_EMISSIONS)
+    idx = willow_year - optigob.baseline_year
+    assert ad_emissions.time_series[test_metric][idx] == expected_result
+    assert ad_emissions.time_series[test_metric][idx-1] < expected_result

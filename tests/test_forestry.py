@@ -1,9 +1,8 @@
 from optigob.optigob import Optigob
 from configuration.keys import *
+import pytest
 
 db_file_path = "data/database.db"
-
-import pytest
 
 @pytest.mark.parametrize(
     "test_year, test_metric, harvest, ccs, expected",
@@ -44,13 +43,6 @@ def test_existing_forest(test_year, test_metric, harvest, ccs, expected):
     result = existing_forest.time_series[test_metric][idx]
 
     assert round(result, 5) == round(expected, 5)
-
-#"name":"afforestation"
-#"afforestation_rate":1
-#"broadleaf_frac":0.5
-#"organic_soil":0.15
-#"harvest":"low"
-#"ccs":false
 
 @pytest.mark.parametrize(
     "test_year, test_metric, afforestation_rate, broadleaf_frac, organic_soil, harvest, ccs, expected",
