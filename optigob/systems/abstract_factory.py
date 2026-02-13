@@ -162,3 +162,9 @@ class Field(ABC):
     @staticmethod
     def transform_to_c02e(co2, n2o, ch4):
         return co2 + 260 * n2o + 25 * ch4
+
+    def get_system(self, name):
+        for system in self.systems:
+            if system.name == name:
+                return system
+        return None

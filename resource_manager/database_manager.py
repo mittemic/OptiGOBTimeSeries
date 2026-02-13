@@ -92,9 +92,11 @@ class DatabaseManager:
 
         kwargs = df.to_dict(orient="list")
         for key, value in kwargs.items():
-            for v in value:
-                if isinstance(v, int) or isinstance(v, float):
-                    v *= affor_rate
+            if isinstance(value[0], int) or isinstance(value[0], float):
+                scaled_values = []
+                for v in value:
+                    scaled_values.append(affor_rate * v)
+                kwargs[key] = scaled_values
 
         return kwargs
 
