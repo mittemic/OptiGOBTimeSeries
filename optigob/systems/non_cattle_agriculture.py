@@ -32,7 +32,7 @@ class NonCattleSystem(AgricultureSystem):
             waypoint_data = waypoint.get_data(db_manager=db_manager, system_name=self.name, agriculture=TABLE_NON_CATTLE)
 
             if waypoint.scale_absolute_or_percentage:
-                scaler = waypoint_data[waypoint.scale_parameter] / waypoint.scaler
+                scaler = waypoint.scaler / waypoint_data[waypoint.scale_parameter]
             else:
                 scaler = self.time_series[waypoint.scale_parameter][0] / waypoint_data[waypoint.scale_parameter] * waypoint.scaler
 
