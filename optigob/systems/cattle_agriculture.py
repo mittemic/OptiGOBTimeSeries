@@ -94,11 +94,10 @@ class CattleAgriculture(Field):
                 beef_scaler = current_beef[waypoint.scale_parameter] / beef_waypoint_data[waypoint.scale_parameter]
                 budget -= current_beef[waypoint.scale_parameter]
                 dairy_scaler = budget / dairy_waypoint_data[waypoint.scale_parameter]
-                pass
             elif current_dairy[waypoint.scale_parameter] + current_beef[waypoint.scale_parameter] > budget > current_dairy[waypoint.scale_parameter]:
                 dairy_scaler = current_dairy[waypoint.scale_parameter] / dairy_waypoint_data[waypoint.scale_parameter]
                 budget -= current_dairy[waypoint.scale_parameter]
-                beef_scaler = budget / current_beef[waypoint.scale_parameter]
+                beef_scaler = budget / beef_waypoint_data[waypoint.scale_parameter]
             else:
                 beef_scaler = 0.0
                 dairy_scaler = budget / dairy_waypoint_data[waypoint.scale_parameter]
