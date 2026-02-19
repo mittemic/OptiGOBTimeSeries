@@ -81,7 +81,7 @@ class AnaerobicDigestion(Field):
             output_list.append(("ad_ch2_substitution_credit", system.time_series["ch4_substitution_credit"]))
             output_list.append(("ad_n2o_substitution_credit", system.time_series["n2o_substitution_credit"]))
             output_list.append(("ad_additional_co2_emission_credit", system.time_series["additional_co2_emission_credit"]))
-            output_list.append(("ad_willow_lulucf_emission_credit", system.time_series["willow_lulucf_emission_credit"]))
+            output_list.append(("ad_willow_lulucf_emission_credit", system.time_series["willow_lulucf_emissions_credit"]))
             output_list.append(("willow_substitution_credit", system.time_series["willow_substitution_credit"]))
 
         return output_list

@@ -10,20 +10,11 @@ class CattleWayPoint(AgricultureWayPoint):
     beef_productivity:str
 
     def get_data(self, db_manager, system_name, agriculture):
-        if system_name == CATTLE_AGRICULTURE_DAIRY:
-            kwargs = db_manager.get_agriculture_data(abatement=self.abatement,
-                                                     productivity=self.dairy_productivity,
-                                                     system=system_name,
-                                                     agriculture=agriculture)
-            return kwargs
-        elif system_name == CATTLE_AGRICULTURE_BEEF:
-            kwargs = db_manager.get_agriculture_data(abatement=self.abatement,
-                                                     productivity=self.beef_productivity,
-                                                     system=system_name,
-                                                     agriculture=agriculture)
-            return kwargs
-
-        return None
+        kwargs = db_manager.get_agriculture_data(abatement=self.abatement,
+                                                 productivity=self.dairy_productivity,
+                                                 system=system_name,
+                                                 agriculture=agriculture)
+        return kwargs
 
 @dataclass
 class CattleSystem(AgricultureSystem):
@@ -33,6 +24,8 @@ class CattleSystem(AgricultureSystem):
                                                  productivity=self.baseline_productivity,
                                                  system=self.name,
                                                  agriculture=TABLE_CATTLE)
+        if self.name == CATTLE_AGRICULTURE_SPARED_AREA:
+            kwargs[AREA] = [0.0]
         self.init_timeseries(kwargs)
 
     def run(self, baseline_year, target_year, db_manager):
@@ -58,7 +51,14 @@ class CattleAgriculture(Field):
                                   waypoints=way_points,
                                   time_series={})
 
-        self.systems = [dairy, beef]
+        # add spared cattle/sheep area
+        spared_area = CattleSystem(name=CATTLE_AGRICULTURE_SPARED_AREA,
+                                   baseline_abatement=data[AGRICULTURE_BASELINE_ABATEMENT],
+                                   baseline_productivity=data[AGRICULTURE_BASELINE_PRODUCTIVITY],
+                                   waypoints=[],
+                                   time_series={"area":[0.0]})
+
+        self.systems = [dairy, beef, spared_area]
 
     def run_cattle_systems(self, baseline_year, target_year, db_manager, nca):
         for waypoint in self.systems[0].waypoints:
@@ -122,13 +122,10 @@ class CattleAgriculture(Field):
                                                baseline_year=baseline_year,
                                                target_year=waypoint.year)
 
-        self.systems[0].update_time_series(new_config=self.systems[0].get_parameters_by_index(-1),
-                                           baseline_year=baseline_year,
-                                           target_year=target_year)
-
-        self.systems[1].update_time_series(new_config=self.systems[1].get_parameters_by_index(-1),
-                                           baseline_year=baseline_year,
-                                           target_year=target_year)
+        for i in range(len(self.systems)):
+            self.systems[i].update_time_series(new_config=self.systems[i].get_parameters_by_index(-1),
+                                               baseline_year=baseline_year,
+                                               target_year=target_year)
 
     def get_protein2(self, time_span):
         protein_milk = []

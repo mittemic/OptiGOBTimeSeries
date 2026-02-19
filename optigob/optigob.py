@@ -1,10 +1,9 @@
 from matplotlib import pyplot as plt
 
 from configuration.keys import *
-import json
 
-from .systems.abstract_factory import Field
 from resource_manager.database_manager import DatabaseManager
+
 from .systems.cattle_agriculture import CattleAgriculture
 from .systems.forestry import Forestry
 from .systems.non_cattle_agriculture import NonCattleAgriculture
@@ -62,9 +61,62 @@ class Optigob:
             if isinstance(fi, CattleAgriculture):
                 fi.run_cattle_systems(self.baseline_year, self.target_year, self.db_manager, nca)
 
+        self.area_balancing()
+
+    def area_balancing(self):
+        # this function only handles balancing of area within different fields
+        # organic soil rewetting balancing in run()
+        # croplands balancing in run()
+
+        if self.get_field(CATTLE_AGRICULTURE) is not None:
+            self.balance_spared_sheep_cattle_area()
+
+        if self.get_field(ORGANIC_SOILS) is not None and self.get_field(ORGANIC_SOILS).get_system(ORGANIC_SOILS_ORGANIC_SOIL_UNDER_GRASS) is not None and self.get_field(FORESTRY) is not None and self.get_field(FORESTRY).get_system(FORESTRY_AFFORESTATION) is not None:
+            self.balance_afforestation_organic_soils()
+
+    def balance_spared_sheep_cattle_area(self):
+        assert self.get_field(CATTLE_AGRICULTURE) is not None
+        sheep_included = self.get_field(NON_CATTLE_AGRICULTURE) is not None and self.get_field(NON_CATTLE_AGRICULTURE).get_system(NON_CATTLE_AGRICULTURE_SHEEP) is not None
+        afforestation_included = self.get_field(FORESTRY) is not None and self.get_field(FORESTRY).get_system(FORESTRY_AFFORESTATION) is not None
+        ad_included = self.get_field(AD_EMISSIONS) is not None
+
+        dairy = self.get_field(CATTLE_AGRICULTURE).get_system(CATTLE_AGRICULTURE_DAIRY)
+        beef = self.get_field(CATTLE_AGRICULTURE).get_system(CATTLE_AGRICULTURE_BEEF)
+        sheep, afforestation, ad_emissions = None, None, None
+
+        if sheep_included:
+            sheep = self.get_field(NON_CATTLE_AGRICULTURE).get_system(NON_CATTLE_AGRICULTURE_SHEEP)
+        if afforestation_included:
+            afforestation = self.get_field(FORESTRY).get_system(FORESTRY_AFFORESTATION)
+        if ad_included:
+            ad_emissions = self.get_field(AD_EMISSIONS).get_system(AD_EMISSIONS)
+
+        for i in range(self.target_year - self.baseline_year + 1):
+            diff = (dairy.time_series[DAIRY_AREA][0] - dairy.time_series[DAIRY_AREA][i]
+                     + dairy.time_series[BEEF_AREA][0] - dairy.time_series[BEEF_AREA][i]
+                     + beef.time_series[BEEF_AREA][0] - beef.time_series[BEEF_AREA][i])
+            if sheep_included:
+                diff += sheep.time_series[AREA][0] - sheep.time_series[AREA][i]
+            if afforestation_included:
+                diff += afforestation.time_series[AREA][0] - afforestation.time_series[AREA][i]
+            if ad_included:
+                diff += (ad_emissions.time_series[AREA][0] - ad_emissions.time_series[AREA][i]
+                         + ad_emissions.time_series[AD_ADDITIONAL_AREA][0] - ad_emissions.time_series[AD_ADDITIONAL_AREA][i]
+                         + ad_emissions.time_series[AD_WILLOW_AREA][0] - ad_emissions.time_series[AD_WILLOW_AREA][i])
+
+            self.get_field(CATTLE_AGRICULTURE).get_system(CATTLE_AGRICULTURE_SPARED_AREA).time_series[AREA][i] += diff
+
+    def balance_afforestation_organic_soils(self):
+        afforestation = self.get_field(FORESTRY).get_system(FORESTRY_AFFORESTATION)
+        organic_soils_under_grass = self.get_field(ORGANIC_SOILS).get_system(ORGANIC_SOILS_ORGANIC_SOIL_UNDER_GRASS)
+
+        for i in range(self.target_year - self.baseline_year + 1):
+            diff = afforestation.time_series[AFFORESTATION_ORGANIC_SOIL_AREA][0] - afforestation.time_series[AFFORESTATION_ORGANIC_SOIL_AREA][i]
+            new_area = organic_soils_under_grass.time_series["Drained_area"][i] + diff
+            self.get_field(ORGANIC_SOILS).get_system(ORGANIC_SOILS_ORGANIC_SOIL_UNDER_GRASS).area_balance(i, new_area, "Drained")
+
     def get_evaluation(self, parameter):
         output_list = []
-        total = []
         time_span = self.target_year - self.baseline_year + 1
 
         for f in self.fields:
@@ -87,33 +139,6 @@ class Optigob:
             if not field_list is None:
                 output_list.extend(field_list)
 
-        #for fi in self.fields:
-        #    for system in fi.systems:
-        #        if parameter in system.time_series:
-        #            system_time_series = system.time_series[parameter][:time_span]
-        #            if len(total) == 0:
-        #                total = system_time_series
-        #            else:
-        #                total = [x+y for (x,y) in zip(total, system_time_series)]
-        #            output_list.append((system.name, system_time_series))
-
-        #if parameter == PROTEIN:
-        #    f = self.get_field(CATTLE_AGRICULTURE)
-        #    if not f is None:
-        #        assert isinstance(f, CattleAgriculture)
-        #        protein_list =  f.get_protein2(time_span)
-        #        for (name, time_series) in protein_list:
-        #            total = [x+y for (x,y) in zip(total, time_series)]
-        #            output_list.append((name, time_series))
-
-        #totals = []
-        #for (name, values) in output_list:
-        #    if "total" in name:
-        #        totals.append((name,values))
-        #if len(totals) > 0:
-        #    total = Field.get_total(totals, time_span)
-
-        #output_list.append(("Total", total))
         return output_list
 
     def get_field(self, name):

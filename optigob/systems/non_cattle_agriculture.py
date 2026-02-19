@@ -60,6 +60,26 @@ class NonCattleAgriculture(Field):
                                                 baseline_productivity=system[AGRICULTURE_BASELINE_PRODUCTIVITY],
                                                 waypoints=way_points,
                                                 time_series={}))
+            if system[NAME] == NON_CATTLE_AGRICULTURE_CROPS:
+                self.systems.append(NonCattleSystem(name=NON_CATTLE_AGRICULTURE_NO_CROPS,
+                                                    baseline_abatement=system[AGRICULTURE_BASELINE_ABATEMENT],
+                                                    baseline_productivity=system[AGRICULTURE_BASELINE_PRODUCTIVITY],
+                                                    waypoints=[],
+                                                    time_series={}))
+
+    def run(self, baseline_year, target_year, db_manager):
+        super().run(baseline_year, target_year, db_manager)
+
+        #area balancing crops
+        c = self.get_system(NON_CATTLE_AGRICULTURE_CROPS)
+        if c is not None:
+            nc = self.get_system(NON_CATTLE_AGRICULTURE_NO_CROPS)
+            baseline_area = c.time_series[AREA][0]
+            no_crop = []
+            for i in range(len(c.time_series[AREA])):
+                diff = c.time_series[AREA][i] - baseline_area
+                no_crop.append(nc.time_series[AREA][i] - diff)
+            self.get_system(NON_CATTLE_AGRICULTURE_NO_CROPS).time_series[AREA] = no_crop
 
     def get_area(self, time_span):
         output_list = []

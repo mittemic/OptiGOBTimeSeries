@@ -76,6 +76,20 @@ class OrganicSoilSystem(WayPointSystem):
 
         self.update_time_series(new_config=new_parameters, baseline_year=baseline_year, target_year=target_year)
 
+    def area_balance(self, idx, area, drainage_status):
+        st = self.get_soil_type(drainage_status)
+        assert st is not None
+        self.time_series[drainage_status + "_area"][idx] = area
+        for key, value in st.parameters.items():
+            if isinstance(value, int) or isinstance(value, float):
+                self.time_series[drainage_status + "_" + key][idx] = value * area
+
+    def get_soil_type(self, name):
+        for st in self.soil_types:
+            if st.drainage_status == name:
+                return st
+        return None
+
     def get(self, key):
         if key in self.time_series.keys():
             return super().get(key)
