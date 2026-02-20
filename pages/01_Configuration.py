@@ -206,7 +206,7 @@ with st.expander("Afforestation", expanded=False):
         "Afforestation rate (x1,000 ha/y)",
         min_value=0.0,
         max_value=10.0,
-        step=0.1,
+        step=0.5,
         value=1.0,
     )
     bl_ratio = st.selectbox(
@@ -363,8 +363,8 @@ if implement_ad:
                 "Additional grass biomethane (GWh)",
                 min_value=0.0,
                 max_value=20000.0,
-                step=10.0,
-                value=0.0,
+                step=1000.0,
+                value=1000.0,
                 key="ad_grass_biomethane",
             )
 
@@ -384,11 +384,11 @@ if implement_ad:
 
         with col5:
             cdr_bioenergy = st.number_input(
-                "Carbon dioxide removal via bioenergy (Mt CO₂)",
+                "Carbon dioxide removal via bioenergy (kt CO₂)",
                 min_value=0.0,
-                max_value=20.0,
-                step=0.1,
-                value=0.0,
+                max_value=20000.0,
+                step=1000.0,
+                value=1000.0,
                 key="ad_cdr",
             )
 

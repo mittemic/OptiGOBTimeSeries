@@ -65,12 +65,17 @@ class Optigob:
 
     def area_balancing(self):
         # this function only handles balancing of area within different fields
-        # organic soil rewetting balancing in run()
-        # croplands balancing in run()
+        # organic soil rewetting balancing in systems.organic_soils.OrganicSoilSystem.run()
+        # croplands/no-croplands balancing in systems.non_cattle_agriculture.NonCattleAgriculture.run()
 
+        # beef.area_beef    =>                          => afforestation.area
+        # dairy.area_dairy  => spared_sheep_cattle.area => ad.area
+        # dairy.area_beef   =>                          => additional_ad.area
+        # sheep.area        =>                          => willow_ad.area
         if self.get_field(CATTLE_AGRICULTURE) is not None:
             self.balance_spared_sheep_cattle_area()
 
+        # organic_soil_under_grass.drained_area => afforestation.organic_soil_area
         if self.get_field(ORGANIC_SOILS) is not None and self.get_field(ORGANIC_SOILS).get_system(ORGANIC_SOILS_ORGANIC_SOIL_UNDER_GRASS) is not None and self.get_field(FORESTRY) is not None and self.get_field(FORESTRY).get_system(FORESTRY_AFFORESTATION) is not None:
             self.balance_afforestation_organic_soils()
 
@@ -138,6 +143,21 @@ class Optigob:
 
             if not field_list is None:
                 output_list.extend(field_list)
+
+        i = 0
+        while i < len(output_list):
+            (label, value) = output_list[i]
+            if sum(value) == 0:
+                rm = True
+                for v in value:
+                    if v != 0.0:
+                        rm = False
+                if rm:
+                    output_list.pop(i)
+                else:
+                    i += 1
+            else:
+                i += 1
 
         return output_list
 

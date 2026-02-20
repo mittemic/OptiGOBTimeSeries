@@ -69,6 +69,17 @@ class Forestry(Field):
             system.time_series[CO2E] = co2e_emissions
 
 
+    def get_area(self, time_span):
+        output_list = []
+        for s in self.systems:
+            output_list.append((s.name + "_" + AREA, s.time_series[AREA]))
+            output_list.append((s.name + "_" + AFFORESTATION_ORGANIC_SOIL_AREA, s.time_series[AFFORESTATION_ORGANIC_SOIL_AREA]))
+
+        total = self.get_total(output_list, time_span)
+        output_list.append(("total_" + self.name, total))
+
+        return output_list
+
     def get_protein(self, time_span): pass
     def get_bio_energy(self, time_span): pass
 

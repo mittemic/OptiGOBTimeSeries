@@ -61,44 +61,13 @@ def render_timeseries_tab(
     def make_key(index: int) -> str:
         return f"{metric_key}_{index}"
 
-    col1, col2, col3 = st.columns([1, 4, 1])
-    with col2:
-        fig, ax = plt.subplots()
-        any_visible = False
+    st.subheader(title)
 
-        # ---- initialize session state safely ----
-        for i, (label, _) in enumerate(series):
-            key = make_key(i)
-            if key not in st.session_state:
-                st.session_state[key] = False
-
-        # ---- plot ----
-        for i, (label, y) in enumerate(series):
-            key = make_key(i)
-            if st.session_state[key]:
-                ax.plot(time_line, y, marker=None, label=label)
-                any_visible = True
-
-        ax.set_xlabel("Year")
-        ax.set_ylabel(y_label)
-        ax.set_title(title)
-        ax.grid(True)
-
-        if any_visible:
-            ax.legend(loc="center left", bbox_to_anchor=(1, 0.5))
-        else:
-            ax.text(
-                0.5,
-                0.5,
-                "No series selected",
-                ha="center",
-                va="center",
-                transform=ax.transAxes,
-                fontsize=12,
-                alpha=0.6,
-            )
-
-        st.pyplot(fig)
+    # ---- initialize session state safely ----
+    for i, (label, _) in enumerate(series):
+        key = make_key(i)
+        if key not in st.session_state:
+            st.session_state[key] = False
 
     # ---- checkboxes ----
     st.markdown("### Show / hide series")
@@ -112,11 +81,8 @@ def render_timeseries_tab(
         with col:
             st.checkbox(label, key=key)
 
-    # ---- table ----
-    st.divider()
-    st.header("Data Table")
-
-    data = {"year": list(time_line)}
+    # ---- prepare dataframe for selected series ----
+    data = {"Year": list(time_line)}
 
     for i, (label, y) in enumerate(series):
         key = make_key(i)
@@ -124,6 +90,22 @@ def render_timeseries_tab(
             data[label] = y
 
     df = pd.DataFrame(data)
+
+    # ---- plot ----
+    if len(df.columns) > 1:
+        df_chart = df.set_index("Year")
+
+        col1, col2, col3 = st.columns([1, 2, 1])
+        with col2:
+            st.subheader(f"{title} ({y_label})")
+            st.line_chart(df_chart, use_container_width=True)
+
+    else:
+        st.info("No series selected")
+
+    # ---- table ----
+    st.divider()
+    st.header("Data Table")
     st.dataframe(df, use_container_width=True)
 
     # ---- CSV download ----
@@ -160,7 +142,7 @@ with tab2:
     render_timeseries_tab(
         metric_key="area",
         title="Land area",
-        y_label="Area (ha)",
+        y_label="ha",
         time_line=time_line,
         optigob=optigob,
     )
@@ -169,7 +151,7 @@ with tab3:
     render_timeseries_tab(
         metric_key="protein",
         title="Protein production",
-        y_label="Protein (t)",
+        y_label="t",
         time_line=time_line,
         optigob=optigob,
     )
@@ -178,7 +160,7 @@ with tab4:
     render_timeseries_tab(
         metric_key="bio_energy",
         title="Bio-energy",
-        y_label="Energy (PJ)",
+        y_label="MWh",
         time_line=time_line,
         optigob=optigob,
     )
@@ -187,7 +169,7 @@ with tab5:
     render_timeseries_tab(
         metric_key="hwp",
         title="Harvested Wood Products",
-        y_label="HWP",
+        y_label="m³",
         time_line=time_line,
         optigob=optigob,
     )
@@ -205,7 +187,7 @@ with tab7:
     render_timeseries_tab(
         metric_key="biodiversity",
         title="Biodiversity indicators",
-        y_label="Index",
+        y_label="HNV area (ha)",
         time_line=time_line,
         optigob=optigob,
     )
