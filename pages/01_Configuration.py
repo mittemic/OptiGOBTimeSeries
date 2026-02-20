@@ -6,6 +6,33 @@ st.set_page_config(page_title="Scenario Configuration Builder", layout="wide")
 st.title("Scenario Configuration Builder")
 
 # -------------------------
+# Upload Existing Configuration
+# -------------------------
+
+st.header("Load Existing Configuration")
+
+uploaded_file = st.file_uploader(
+    "Upload a JSON configuration file",
+    type=["json"],
+)
+
+if uploaded_file is not None:
+    try:
+        uploaded_config = json.load(uploaded_file)
+
+        # Store uploaded config in session state
+        st.session_state["generated_config"] = uploaded_config
+
+        st.success("Configuration loaded successfully. Redirecting...")
+
+        # Automatically go to next screen
+        st.switch_page("pages/02_Evaluation.py")
+
+    except Exception as e:
+        st.error(f"Invalid JSON file: {e}")
+
+
+# -------------------------
 # Helper functions
 # -------------------------
 

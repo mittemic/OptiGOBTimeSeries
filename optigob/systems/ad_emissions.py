@@ -23,6 +23,7 @@ class ADSystem(System):
 
 
 class AnaerobicDigestion(Field):
+
     def __init__(self, data):
         self.name = AD_EMISSIONS
         self.systems = []
@@ -33,13 +34,12 @@ class AnaerobicDigestion(Field):
 
     def get_co2e(self, time_span):
         system = self.systems[0]
-        co2 = system.time_series["co2_emissions"]
-        ch4 = system.time_series["ch4_emissions"]
-        n2o = system.time_series["n2o_emissions"]
-
         co2e = []
         for i in range(time_span):
-            co2e.append(super().transform_to_c02e(co2=co2[i], ch4=ch4[i], n2o=n2o[i]))
+            co2 = system.time_series["co2_emissions"][i] + system.time_series["additional_co2_emissions"][i]
+            ch4 = system.time_series["ch4_emissions"][i] + system.time_series["additional_ch4_emissions"][i]
+            n2o = system.time_series["n2o_emissions"][i] + system.time_series["additional_n2o_emissions"][i]
+            co2e.append(super().transform_to_c02e(co2=co2, ch4=ch4, n2o=n2o))
 
         output_list = [("ad_emissions", co2e)]
         return output_list
@@ -56,8 +56,7 @@ class AnaerobicDigestion(Field):
 
         return output_list
 
-    def get_protein(self, time_span):
-        pass
+    def get_protein(self, time_span): pass
 
     def get_bio_energy(self, time_span):
         output_list = []
@@ -71,8 +70,7 @@ class AnaerobicDigestion(Field):
 
         return output_list
 
-    def get_hwp(self, time_span):
-        pass
+    def get_hwp(self, time_span): pass
 
     def get_substitution(self, time_span):
         output_list = []
@@ -97,3 +95,6 @@ class AnaerobicDigestion(Field):
         output_list.append(("total_ad", total))
 
         return output_list
+
+    def get_net_zero(self, time_span):
+        pass

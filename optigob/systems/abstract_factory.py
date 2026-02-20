@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
+from configuration.keys import *
 
 
 @dataclass
@@ -124,30 +125,40 @@ class Field(ABC):
     def get_co2e(self, time_span):
         output_list = []
         for s in self.systems:
-            output_list.append((s.name + "_co2e", s.time_series["co2e"]))
+            output_list.append((s.name + "_" + CO2E, s.time_series[CO2E]))
 
         total = self.get_total(output_list, time_span)
         output_list.append(("total_" + self.name, total))
 
         return output_list
-    @abstractmethod
+
     def get_area(self, time_span):
-        pass
+        output_list = []
+        for s in self.systems:
+            output_list.append((s.name + "_" + AREA, s.time_series[AREA]))
+
+        total = self.get_total(output_list, time_span)
+        output_list.append(("total_" + self.name, total))
+
+        return output_list
+
     @abstractmethod
-    def get_protein(self, time_span):
-        pass
+    def get_protein(self, time_span): pass
+
     @abstractmethod
-    def get_bio_energy(self, time_span):
-        pass
+    def get_bio_energy(self, time_span): pass
+
     @abstractmethod
-    def get_hwp(self, time_span):
-        pass
+    def get_hwp(self, time_span): pass
+
     @abstractmethod
-    def get_substitution(self, time_span):
-        pass
+    def get_substitution(self, time_span): pass
+
     @abstractmethod
-    def get_biodiversity(self, time_span):
-        pass
+    def get_biodiversity(self, time_span): pass
+
+    @abstractmethod
+    def get_net_zero(self, time_span): pass
 
     @staticmethod
     def get_total(system_list, time_span):

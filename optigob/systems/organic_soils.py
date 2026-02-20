@@ -26,7 +26,7 @@ class OrganicSoilSystem(WayPointSystem):
 
     def init_timeseries(self, parameters):
         for st in self.soil_types:
-            parameters[st.drainage_status + "_area"] = [st.area]
+            parameters[st.drainage_status + "_" + AREA] = [st.area]
             for key, value in st.parameters.items():
                 if isinstance(value, int) or isinstance(value, float):
                     parameters[st.drainage_status + "_" + key] = [value * st.area]
@@ -53,17 +53,17 @@ class OrganicSoilSystem(WayPointSystem):
     def update_soil(self, rewetting_ratio=0.1, baseline_year=2020, target_year=2050):
         baseline_drained_area = 0
         for st in self.soil_types:
-            if st.drainage_status.lower() == 'drained':
+            if st.drainage_status == DRAINED:
                 baseline_drained_area = st.area
 
         new_parameters = {}
         for st in self.soil_types:
             new_area = st.area
-            if st.drainage_status.lower() == 'drained':
+            if st.drainage_status == DRAINED:
                 new_area = (1 - rewetting_ratio) * baseline_drained_area
-            if st.drainage_status.lower() == 'rewetted':
+            if st.drainage_status == REWETTED:
                 new_area = st.area + rewetting_ratio * baseline_drained_area
-            new_parameters[st.drainage_status + "_area"] = new_area
+            new_parameters[st.drainage_status + "_" + AREA] = new_area
             for key, value in st.parameters.items():
                 if isinstance(value, int) or isinstance(value, float):
                     new_parameters[st.drainage_status + "_" + key] = value * new_area
@@ -79,7 +79,7 @@ class OrganicSoilSystem(WayPointSystem):
     def area_balance(self, idx, area, drainage_status):
         st = self.get_soil_type(drainage_status)
         assert st is not None
-        self.time_series[drainage_status + "_area"][idx] = area
+        self.time_series[drainage_status + "_" + AREA][idx] = area
         for key, value in st.parameters.items():
             if isinstance(value, int) or isinstance(value, float):
                 self.time_series[drainage_status + "_" + key][idx] = value * area
@@ -127,22 +127,40 @@ class OrganicSoils(Field):
                                                   soil_types=[]))
 
     def get_co2e(self, time_span):
-        pass
+        output_list = []
+
+        for system in self.systems:
+            assert isinstance(system, OrganicSoilSystem)
+            for ds in system.drainage_status:
+                output_list.append((ds + "_" + system.name, system.time_series[ds + "_" + CO2E]))
+
+        return output_list
 
     def get_area(self, time_span):
-        pass
+        output_list = []
 
-    def get_protein(self, time_span):
-        pass
+        for system in self.systems:
+            assert isinstance(system, OrganicSoilSystem)
+            for ds in system.drainage_status:
+                output_list.append((ds + "_" + system.name, system.time_series[ds + "_" + AREA]))
 
-    def get_bio_energy(self, time_span):
-        pass
+        return output_list
 
-    def get_hwp(self, time_span):
-        pass
-
-    def get_substitution(self, time_span):
-        pass
+    def get_protein(self, time_span): pass
+    def get_bio_energy(self, time_span): pass
+    def get_hwp(self, time_span): pass
+    def get_substitution(self, time_span): pass
 
     def get_biodiversity(self, time_span):
+        output_list = []
+
+        for system in self.systems:
+            assert isinstance(system, OrganicSoilSystem)
+            for ds in system.drainage_status:
+                output_list.append((ds + "_" + system.name, system.time_series[ds + "_" + HNV_AREA + "_ratio"]))
+
+        return output_list
+
+
+    def get_net_zero(self, time_span):
         pass

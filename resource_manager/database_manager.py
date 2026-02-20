@@ -217,7 +217,7 @@ class DatabaseManager:
                 hnv_area,
                 co2_emissions,
                 ch4_emissions,
-                n20_emissions,
+                n2o_emissions,
                 nh3_emissions,
                 n_to_water_emissions,
                 p_to_water_emissions,

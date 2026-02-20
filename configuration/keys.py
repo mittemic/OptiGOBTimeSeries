@@ -11,6 +11,8 @@ HWP = "hwp"
 SUBSTITUTION = "substitution"
 BIODIVERSITY = "biodiversity"
 
+HNV_AREA = "hnv_area"
+
 FORESTRY = "forestry"
 FORESTRY_AFFORESTATION = "afforestation"
 FORESTRY_EXISTING_FOREST = "existing_forest"
@@ -22,6 +24,8 @@ ORGANIC_SOILS_ORGANIC_SOIL_UNDER_GRASS = "Organic soil under grass"
 ORGANIC_SOILS_NEAR_NATURAL_WETLANDS = "Near natural wetlands"
 ORGANIC_SOILS_INDUSTRIAL_PEAT = "Industrial peat"
 ORGANIC_SOILS_DOMESTIC_PEAT = "Domestic peat"
+DRAINED = "Drained"
+REWETTED = "Rewetted"
 
 NON_CATTLE_AGRICULTURE = "non_cattle_agriculture"
 NON_CATTLE_AGRICULTURE_PIGS = "Pigs"

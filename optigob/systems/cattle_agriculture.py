@@ -56,7 +56,7 @@ class CattleAgriculture(Field):
                                    baseline_abatement=data[AGRICULTURE_BASELINE_ABATEMENT],
                                    baseline_productivity=data[AGRICULTURE_BASELINE_PRODUCTIVITY],
                                    waypoints=[],
-                                   time_series={"area":[0.0]})
+                                   time_series={AREA:[0.0]})
 
         self.systems = [dairy, beef, spared_area]
 
@@ -127,34 +127,14 @@ class CattleAgriculture(Field):
                                                baseline_year=baseline_year,
                                                target_year=target_year)
 
-    def get_protein2(self, time_span):
-        protein_milk = []
-        protein_beef = []
-
-        for s in self.systems:
-            if CATTLE_AGRICULTURE_PROTEIN_MILK in s.time_series:
-                time_series = s.time_series[CATTLE_AGRICULTURE_PROTEIN_MILK][:time_span]
-                if len(protein_milk) == 0:
-                    protein_milk = time_series
-                else:
-                    protein_milk = [x + y for (x, y) in zip(protein_milk, time_series)]
-            if CATTLE_AGRICULTURE_PROTEIN_BEEF in s.time_series:
-                time_series = s.time_series[CATTLE_AGRICULTURE_PROTEIN_BEEF][:time_span]
-                if len(protein_beef) == 0:
-                    protein_beef = time_series
-                else:
-                    protein_beef = [x + y for (x, y) in zip(protein_beef, time_series)]
-
-        return [("Cattle Protein Milk", protein_milk), ("Cattle Protein Beef", protein_beef)]
-
     def get_area(self, time_span):
-        output_list = []
-        for s in self.systems:
-            output_list.append((s.name + "_area_dairy", s.time_series["area_dairy"]))
-            output_list.append((s.name + "_area_beef", s.time_series["area_beef"]))
+        output_list = [(CATTLE_AGRICULTURE_DAIRY + "_" + DAIRY_AREA, self.systems[0].time_series[DAIRY_AREA]),
+                       (CATTLE_AGRICULTURE_DAIRY + "_" + BEEF_AREA, self.systems[0].time_series[BEEF_AREA]),
+                       (CATTLE_AGRICULTURE_BEEF + "_" + BEEF_AREA, self.systems[1].time_series[BEEF_AREA]),
+                       (CATTLE_AGRICULTURE_SPARED_AREA + "_" + AREA, self.systems[2].time_series[AREA])]
 
         total = super().get_total(output_list, time_span)
-        output_list.append(("total_cattle", total))
+        output_list.append(("total_" + self.name, total))
 
         return output_list
 
@@ -165,18 +145,14 @@ class CattleAgriculture(Field):
             output_list.append((s.name + "_protein_beef", s.time_series["protein_beef"]))
 
         total = super().get_total(output_list, time_span)
-        output_list.append(("total_cattle", total))
+        output_list.append(("total_" + self.name, total))
 
         return output_list
 
-    def get_bio_energy(self, time_span):
-        pass
+    def get_bio_energy(self, time_span): pass
+    def get_hwp(self, time_span): pass
+    def get_substitution(self, time_span): pass
+    def get_biodiversity(self, time_span): pass
 
-    def get_hwp(self, time_span):
-        pass
-
-    def get_substitution(self, time_span):
-        pass
-
-    def get_biodiversity(self, time_span):
+    def get_net_zero(self, time_span):
         pass

@@ -66,23 +66,11 @@ class Forestry(Field):
         super().run(baseline_year, target_year, db_manager)
         for system in self.systems:
             (_, co2e_emissions) = system.get_co2e()[0]
-            system.time_series["co2e"] = co2e_emissions
+            system.time_series[CO2E] = co2e_emissions
 
-    def get_area(self, time_span):
-        output_list = []
-        for s in self.systems:
-            output_list.append((s.name + "_area", s.time_series["area"]))
 
-        total = super().get_total(output_list, time_span)
-        output_list.append(("total_forestry", total))
-
-        return output_list
-
-    def get_protein(self, time_span):
-        pass
-
-    def get_bio_energy(self, time_span):
-        pass
+    def get_protein(self, time_span): pass
+    def get_bio_energy(self, time_span): pass
 
     def get_hwp(self, time_span):
         output_list = []
@@ -90,7 +78,7 @@ class Forestry(Field):
             output_list.append((s.name + "_harvest_volume", s.time_series["harvest_volume"]))
 
         total = super().get_total(output_list, time_span)
-        output_list.append(("total_forestry", total))
+        output_list.append(("total_" + self.name, total))
 
         return output_list
 
@@ -101,16 +89,19 @@ class Forestry(Field):
             output_list.append((s.name + "_hwp_energy_substitution_credit", s.time_series["hwp_energy_substitution_credit"]))
 
         total = super().get_total(output_list, time_span)
-        output_list.append(("total_forestry", total))
+        output_list.append(("total_" + self.name, total))
 
         return output_list
 
     def get_biodiversity(self, time_span):
         output_list = []
         for s in self.systems:
-            output_list.append((s.name + "_hnv_area", s.time_series["hnv_area"]))
+            output_list.append((s.name + "_" + HNV_AREA, s.time_series[HNV_AREA]))
 
         total = super().get_total(output_list, time_span)
-        output_list.append(("total_forestry", total))
+        output_list.append(("total_" + self.name, total))
 
         return output_list
+
+    def get_net_zero(self, time_span):
+        pass

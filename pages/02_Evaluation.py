@@ -57,20 +57,25 @@ def render_timeseries_tab(
 ):
     series = optigob.get_evaluation(metric_key)
 
+    # Helper to generate guaranteed-unique keys
+    def make_key(index: int) -> str:
+        return f"{metric_key}_{index}"
+
     col1, col2, col3 = st.columns([1, 4, 1])
     with col2:
         fig, ax = plt.subplots()
         any_visible = False
 
-        # ---- initialize session state ----
-        for label, _ in series:
-            key = f"{metric_key}_{label}"
+        # ---- initialize session state safely ----
+        for i, (label, _) in enumerate(series):
+            key = make_key(i)
             if key not in st.session_state:
                 st.session_state[key] = False
 
         # ---- plot ----
-        for label, y in series:
-            if st.session_state[f"{metric_key}_{label}"]:
+        for i, (label, y) in enumerate(series):
+            key = make_key(i)
+            if st.session_state[key]:
                 ax.plot(time_line, y, marker=None, label=label)
                 any_visible = True
 
@@ -98,21 +103,24 @@ def render_timeseries_tab(
     # ---- checkboxes ----
     st.markdown("### Show / hide series")
 
-    cols = st.columns(len(series))
-    for col, (label, _) in zip(cols, series):
+    num_columns = 5
+    cols = st.columns(num_columns)
+
+    for i, (label, _) in enumerate(series):
+        key = make_key(i)
+        col = cols[i % num_columns]
         with col:
-            st.checkbox(
-                label,
-                key=f"{metric_key}_{label}",
-            )
+            st.checkbox(label, key=key)
 
     # ---- table ----
     st.divider()
     st.header("Data Table")
 
-    data = {"year": time_line}
-    for label, y in series:
-        if st.session_state[f"{metric_key}_{label}"]:
+    data = {"year": list(time_line)}
+
+    for i, (label, y) in enumerate(series):
+        key = make_key(i)
+        if st.session_state[key]:
             data[label] = y
 
     df = pd.DataFrame(data)

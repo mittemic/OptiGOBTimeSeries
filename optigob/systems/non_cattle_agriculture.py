@@ -81,34 +81,19 @@ class NonCattleAgriculture(Field):
                 no_crop.append(nc.time_series[AREA][i] - diff)
             self.get_system(NON_CATTLE_AGRICULTURE_NO_CROPS).time_series[AREA] = no_crop
 
-    def get_area(self, time_span):
-        output_list = []
-        for s in self.systems:
-            output_list.append((s.name + "_area", s.time_series["area"]))
-
-        total = super().get_total(output_list, time_span)
-        output_list.append(("total_non_cattle", total))
-
-        return output_list
-
     def get_protein(self, time_span):
         output_list = []
         for s in self.systems:
             output_list.append((s.name + "_protein", s.time_series["protein"]))
 
         total = super().get_total(output_list, time_span)
-        output_list.append(("total_non_cattle", total))
+        output_list.append(("total_" + NON_CATTLE_AGRICULTURE, total))
 
         return output_list
 
-    def get_bio_energy(self, time_span):
-        pass
-
-    def get_hwp(self, time_span):
-        pass
-
-    def get_substitution(self, time_span):
-        pass
+    def get_bio_energy(self, time_span): pass
+    def get_hwp(self, time_span): pass
+    def get_substitution(self, time_span): pass
 
     def get_biodiversity(self, time_span):
         output_list = []
@@ -116,6 +101,9 @@ class NonCattleAgriculture(Field):
             output_list.append((s.name + "_hnv_area", s.time_series["hnv_area"]))
 
         total = super().get_total(output_list, time_span)
-        output_list.append(("total_forestry", total))
+        output_list.append(("total_" + NON_CATTLE_AGRICULTURE, total))
 
         return output_list
+
+    def get_net_zero(self, time_span):
+        pass

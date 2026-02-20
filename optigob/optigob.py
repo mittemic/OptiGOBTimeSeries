@@ -112,8 +112,8 @@ class Optigob:
 
         for i in range(self.target_year - self.baseline_year + 1):
             diff = afforestation.time_series[AFFORESTATION_ORGANIC_SOIL_AREA][0] - afforestation.time_series[AFFORESTATION_ORGANIC_SOIL_AREA][i]
-            new_area = organic_soils_under_grass.time_series["Drained_area"][i] + diff
-            self.get_field(ORGANIC_SOILS).get_system(ORGANIC_SOILS_ORGANIC_SOIL_UNDER_GRASS).area_balance(i, new_area, "Drained")
+            new_area = organic_soils_under_grass.time_series[DRAINED + "_" + AREA][i] + diff
+            self.get_field(ORGANIC_SOILS).get_system(ORGANIC_SOILS_ORGANIC_SOIL_UNDER_GRASS).area_balance(i, new_area, DRAINED)
 
     def get_evaluation(self, parameter):
         output_list = []
@@ -140,6 +140,9 @@ class Optigob:
                 output_list.extend(field_list)
 
         return output_list
+
+    def get_net_zero_calculations(self):
+        pass
 
     def get_field(self, name):
         for f in self.fields:
