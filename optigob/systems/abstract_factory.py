@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from configuration.keys import *
+from optigob.utils import add_two_lists, transform_to_co2e_time_series, get_total
 
 
 @dataclass
@@ -12,11 +13,10 @@ class System(ABC):
         self.time_series = parameters
 
     @abstractmethod
-    def load_data(self, db_manager):
-        pass
+    def load_data(self, db_manager): pass
 
     def get(self, key):
-        if key == "co2e":
+        if key == CO2E:
             return self.get_co2e()
         if key in self.time_series.keys():
             return [(self.name, self.time_series[key])]
@@ -24,7 +24,8 @@ class System(ABC):
         return []
 
     def get_co2e(self):
-        return [(self.name, self.time_series["co2e"])]
+        co2e = transform_to_co2e_time_series(self.time_series[CO2], self.time_series[N2O], self.time_series[CH4])
+        return self.name, co2e
 
     def get_current_year(self, baseline_year):
         current_year = None
@@ -76,6 +77,12 @@ class System(ABC):
                                     baseline_year=baseline_year,
                                     target_year=target_year)
 
+    def get_net_zero(self, time_span):
+        co2 = self.time_series[CO2][:time_span]
+        n2o = self.time_series[N2O][:time_span]
+        ch4 = self.time_series[CH4][:time_span]
+        return co2, n2o, ch4
+
 @dataclass
 class WayPoint(ABC):
     year: int
@@ -125,9 +132,9 @@ class Field(ABC):
     def get_co2e(self, time_span):
         output_list = []
         for s in self.systems:
-            output_list.append((s.name + "_" + CO2E, s.time_series[CO2E]))
+            output_list.append(s.get_co2e())
 
-        total = self.get_total(output_list, time_span)
+        total = get_total(output_list, time_span)
         output_list.append(("total_" + self.name, total))
 
         return output_list
@@ -137,7 +144,7 @@ class Field(ABC):
         for s in self.systems:
             output_list.append((s.name + "_" + AREA, s.time_series[AREA]))
 
-        total = self.get_total(output_list, time_span)
+        total = get_total(output_list, time_span)
         output_list.append(("total_" + self.name, total))
 
         return output_list
@@ -157,22 +164,15 @@ class Field(ABC):
     @abstractmethod
     def get_biodiversity(self, time_span): pass
 
-    @abstractmethod
-    def get_net_zero(self, time_span): pass
+    def get_net_zero(self, time_span):
+        co2, n2o, ch4 = [], [], []
+        for s in self.systems:
+            s_co2, s_n20, s_ch4 = s.get_net_zero(time_span)
+            co2 = add_two_lists(co2, s_co2)
+            n2o = add_two_lists(n2o, s_n20)
+            ch4 = add_two_lists(ch4, s_ch4)
 
-    @staticmethod
-    def get_total(system_list, time_span):
-        sum_list = []
-        for _ in range(time_span):
-            sum_list.append(0)
-        for (n,l) in system_list:
-            for i in range(time_span):
-                sum_list[i] += l[i]
-        return sum_list
-
-    @staticmethod
-    def transform_to_c02e(co2, n2o, ch4):
-        return co2 + 260 * n2o + 25 * ch4
+        return co2, n2o, ch4
 
     def get_system(self, name):
         for system in self.systems:

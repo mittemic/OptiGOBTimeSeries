@@ -3,6 +3,8 @@ from dataclasses import dataclass
 from optigob.systems.abstract_factory import Field
 from configuration.keys import *
 from optigob.systems.agriculture import AgricultureWayPoint, AgricultureSystem
+from optigob.utils import get_total
+
 
 @dataclass
 class NonCattleWayPoint(AgricultureWayPoint):
@@ -86,7 +88,7 @@ class NonCattleAgriculture(Field):
         for s in self.systems:
             output_list.append((s.name + "_protein", s.time_series["protein"]))
 
-        total = super().get_total(output_list, time_span)
+        total = get_total(output_list, time_span)
         output_list.append(("total_" + NON_CATTLE_AGRICULTURE, total))
 
         return output_list
@@ -100,10 +102,7 @@ class NonCattleAgriculture(Field):
         for s in self.systems:
             output_list.append((s.name + "_hnv_area", s.time_series["hnv_area"]))
 
-        total = super().get_total(output_list, time_span)
+        total = get_total(output_list, time_span)
         output_list.append(("total_" + NON_CATTLE_AGRICULTURE, total))
 
         return output_list
-
-    def get_net_zero(self, time_span):
-        pass

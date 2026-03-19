@@ -2,6 +2,8 @@ from dataclasses import dataclass
 
 from optigob.systems.abstract_factory import Field, System
 from configuration.keys import *
+from optigob.utils import add_two_lists, get_total
+
 
 @dataclass
 class ForestrySystem(System):
@@ -19,12 +21,15 @@ class ForestrySystem(System):
         # include net zero calculation table
         co2e_emissions = []
         for metric in self.nz_metrics:
-            if co2e_emissions == []:
-                co2e_emissions = self.time_series[metric]
-            else:
-                co2e_emissions = [x + y for x, y in zip(co2e_emissions, self.time_series[metric])]
+            co2e_emissions = add_two_lists(co2e_emissions, self.time_series[metric])
 
-        return [(self.name, co2e_emissions)]
+        return self.name, co2e_emissions
+
+    def get_net_zero(self, time_span):
+        co2 = self.time_series[CO2E][:time_span]
+        n2o = [0] * time_span
+        ch4 = [0] * time_span
+        return co2, n2o, ch4
 
 @dataclass
 class ExistingForest(ForestrySystem):
@@ -65,7 +70,7 @@ class Forestry(Field):
     def run(self, baseline_year, target_year, db_manager):
         super().run(baseline_year, target_year, db_manager)
         for system in self.systems:
-            (_, co2e_emissions) = system.get_co2e()[0]
+            (_, co2e_emissions) = system.get_co2e()
             system.time_series[CO2E] = co2e_emissions
 
 
@@ -75,7 +80,7 @@ class Forestry(Field):
             output_list.append((s.name + "_" + AREA, s.time_series[AREA]))
             output_list.append((s.name + "_" + AFFORESTATION_ORGANIC_SOIL_AREA, s.time_series[AFFORESTATION_ORGANIC_SOIL_AREA]))
 
-        total = self.get_total(output_list, time_span)
+        total = get_total(output_list, time_span)
         output_list.append(("total_" + self.name, total))
 
         return output_list
@@ -88,7 +93,7 @@ class Forestry(Field):
         for s in self.systems:
             output_list.append((s.name + "_harvest_volume", s.time_series["harvest_volume"]))
 
-        total = super().get_total(output_list, time_span)
+        total = get_total(output_list, time_span)
         output_list.append(("total_" + self.name, total))
 
         return output_list
@@ -99,7 +104,7 @@ class Forestry(Field):
             output_list.append((s.name + "_hwp_material_substitution_credit", s.time_series["hwp_material_substitution_credit"]))
             output_list.append((s.name + "_hwp_energy_substitution_credit", s.time_series["hwp_energy_substitution_credit"]))
 
-        total = super().get_total(output_list, time_span)
+        total = get_total(output_list, time_span)
         output_list.append(("total_" + self.name, total))
 
         return output_list
@@ -109,10 +114,7 @@ class Forestry(Field):
         for s in self.systems:
             output_list.append((s.name + "_" + HNV_AREA, s.time_series[HNV_AREA]))
 
-        total = super().get_total(output_list, time_span)
+        total = get_total(output_list, time_span)
         output_list.append(("total_" + self.name, total))
 
         return output_list
-
-    def get_net_zero(self, time_span):
-        pass

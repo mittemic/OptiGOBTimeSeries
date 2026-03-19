@@ -3,6 +3,8 @@ from dataclasses import dataclass
 from configuration.keys import *
 from optigob.systems.abstract_factory import Field, WayPointSystem
 from optigob.systems.agriculture import AgricultureSystem, AgricultureWayPoint
+from optigob.utils import get_total
+
 
 @dataclass()
 class CattleWayPoint(AgricultureWayPoint):
@@ -133,7 +135,7 @@ class CattleAgriculture(Field):
                        (CATTLE_AGRICULTURE_BEEF + "_" + BEEF_AREA, self.systems[1].time_series[BEEF_AREA]),
                        (CATTLE_AGRICULTURE_SPARED_AREA + "_" + AREA, self.systems[2].time_series[AREA])]
 
-        total = super().get_total(output_list, time_span)
+        total = get_total(output_list, time_span)
         output_list.append(("total_" + self.name, total))
 
         return output_list
@@ -144,7 +146,7 @@ class CattleAgriculture(Field):
             output_list.append((s.name + "_protein_milk", s.time_series["protein_milk"]))
             output_list.append((s.name + "_protein_beef", s.time_series["protein_beef"]))
 
-        total = super().get_total(output_list, time_span)
+        total = get_total(output_list, time_span)
         output_list.append(("total_" + self.name, total))
 
         return output_list
@@ -153,6 +155,3 @@ class CattleAgriculture(Field):
     def get_hwp(self, time_span): pass
     def get_substitution(self, time_span): pass
     def get_biodiversity(self, time_span): pass
-
-    def get_net_zero(self, time_span):
-        pass

@@ -12,6 +12,9 @@ SUBSTITUTION = "substitution"
 BIODIVERSITY = "biodiversity"
 
 HNV_AREA = "hnv_area"
+CO2 = "co2"
+N2O = "n2o"
+CH4 = "ch4"
 
 FORESTRY = "forestry"
 FORESTRY_AFFORESTATION = "afforestation"

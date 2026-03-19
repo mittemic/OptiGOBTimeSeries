@@ -24,8 +24,7 @@ class AgricultureSystem(WayPointSystem):
                 self.time_series[key] = [self.time_series[key]]
 
     @abstractmethod
-    def load_data(self, db_manager):
-        pass
+    def load_data(self, db_manager): pass
 
     def update_by_scaler(self, scaler, baseline_year, target_year):
         new_config = {}

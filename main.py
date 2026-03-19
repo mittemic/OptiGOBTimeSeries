@@ -12,6 +12,7 @@ with open(config_file_path, "r") as f:
 optigob = Optigob(json_config=json_config, db_file_path=db_file_path)
 optigob.run()
 
+optigob.get_evaluation(CO2E)
 optigob.visualise(parameter="co2e", systems=[NON_CATTLE_AGRICULTURE, CATTLE_AGRICULTURE])
 
 #optigob.visualise(parameter="area", systems=[ORGANIC_SOILS])

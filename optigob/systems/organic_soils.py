@@ -160,7 +160,3 @@ class OrganicSoils(Field):
                 output_list.append((ds + "_" + system.name, system.time_series[ds + "_" + HNV_AREA + "_ratio"]))
 
         return output_list
-
-
-    def get_net_zero(self, time_span):
-        pass

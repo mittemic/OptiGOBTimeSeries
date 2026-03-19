@@ -1,4 +1,8 @@
 from matplotlib import pyplot as plt
+from io import BytesIO
+from openpyxl import Workbook
+from openpyxl.utils import get_column_letter
+from openpyxl.worksheet.table import Table, TableStyleInfo
 
 from configuration.keys import *
 
@@ -9,6 +13,7 @@ from .systems.forestry import Forestry
 from .systems.non_cattle_agriculture import NonCattleAgriculture
 from .systems.organic_soils import OrganicSoils
 from .systems.ad_emissions import AnaerobicDigestion
+from .utils import add_two_lists, transform_to_c02e
 
 
 class Optigob:
@@ -159,10 +164,30 @@ class Optigob:
             else:
                 i += 1
 
+        if parameter == CO2E:
+            co2e, co2e_split_gas, total_ch4 = self.get_net_zero_calculations()
+            output_list.append(("net_zero_co2e", co2e))
+            output_list.append(("net_zero_split_gas_co2/n2o", co2e_split_gas))
+            output_list.append(("net_zero_split_gas_ch4", total_ch4))
+
         return output_list
 
     def get_net_zero_calculations(self):
-        pass
+        time_span = self.target_year - self.baseline_year + 1
+        total_co2, total_n2o, total_ch4 = [], [], []
+        for f in self.fields:
+            (co2, n2o, ch4) = f.get_net_zero(time_span=time_span)
+            total_co2 = add_two_lists(total_co2, co2)
+            total_n2o = add_two_lists(total_n2o, n2o)
+            total_ch4 = add_two_lists(total_ch4, ch4)
+
+        co2e = []
+        co2e_split_gas = []
+        for i in range(time_span):
+            co2e.append(transform_to_c02e(co2=total_co2[i], n2o=total_n2o[i], ch4=total_ch4[i]))
+            co2e_split_gas.append(transform_to_c02e(co2=total_co2[i], n2o=total_n2o[i], ch4=0))
+
+        return co2e, co2e_split_gas, total_ch4
 
     def get_field(self, name):
         for f in self.fields:
@@ -199,3 +224,50 @@ class Optigob:
         plt.ylabel("parameter")
         plt.legend()
         plt.show()
+
+    def export_time_series(self):
+        wb = Workbook()
+        # Remove default sheet (optional, cleaner)
+        wb.remove(wb.active)
+
+        for f in self.fields:
+            sheet = wb.create_sheet(title=f.name)
+
+            data = [["System"], ["Parameter"], ["Year"]]
+            for i in range(self.baseline_year, self.target_year + 1):
+                data.append([str(i)])
+
+            for s in f.systems:
+                for p in s.time_series.keys():
+                    data[0].append(s.name)
+                    data[1].append(p)
+                    data[2].append("")
+                    for i in range(self.baseline_year, self.target_year + 1):
+                        idx = i - self.baseline_year
+                        data[3+idx].append(s.time_series[p][idx])
+
+            # ---- write data to sheet ----
+            for row in data:
+                sheet.append(row)
+
+            # ---- create dynamic table ----
+            max_row = sheet.max_row
+            max_col = sheet.max_column
+
+            table_ref = f"A1:{get_column_letter(max_col)}{max_row}"
+
+            table = Table(displayName=f"Table_{f.name}", ref=table_ref)
+
+            table.tableStyleInfo = TableStyleInfo(
+                name="TableStyleMedium9",
+                showRowStripes=True,
+                showColumnStripes=False
+            )
+
+            sheet.add_table(table)
+
+        # Save to memory
+        buffer = BytesIO()
+        wb.save(buffer)
+        buffer.seek(0)
+        return buffer

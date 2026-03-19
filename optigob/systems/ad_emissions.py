@@ -2,6 +2,8 @@ from dataclasses import dataclass
 
 from optigob.systems.abstract_factory import Field, System
 from configuration.keys import *
+from optigob.utils import add_two_lists, transform_to_c02e, get_total
+
 
 @dataclass
 class ADSystem(System):
@@ -21,6 +23,15 @@ class ADSystem(System):
                                              self.cdr_bioenergy)
         self.init_timeseries(kwargs)
 
+    def get_net_zero(self, time_span):
+        co2 = self.time_series[CO2][:time_span]
+        n2o = self.time_series[N2O][:time_span]
+        ch4 = self.time_series[CH4][:time_span]
+
+        co2 = add_two_lists(co2, self.time_series["additional_" + CO2][:time_span])
+        n2o = add_two_lists(n2o, self.time_series["additional_" + N2O][:time_span])
+        ch4 = add_two_lists(ch4, self.time_series["additional_" + CH4][:time_span])
+        return co2, n2o, ch4
 
 class AnaerobicDigestion(Field):
 
@@ -36,10 +47,10 @@ class AnaerobicDigestion(Field):
         system = self.systems[0]
         co2e = []
         for i in range(time_span):
-            co2 = system.time_series["co2_emissions"][i] + system.time_series["additional_co2_emissions"][i]
-            ch4 = system.time_series["ch4_emissions"][i] + system.time_series["additional_ch4_emissions"][i]
-            n2o = system.time_series["n2o_emissions"][i] + system.time_series["additional_n2o_emissions"][i]
-            co2e.append(super().transform_to_c02e(co2=co2, ch4=ch4, n2o=n2o))
+            co2 = system.time_series["co2"][i] + system.time_series["additional_co2"][i]
+            ch4 = system.time_series["ch4"][i] + system.time_series["additional_ch4"][i]
+            n2o = system.time_series["n2o"][i] + system.time_series["additional_n2o"][i]
+            co2e.append(transform_to_c02e(co2=co2, ch4=ch4, n2o=n2o))
 
         output_list = [("ad_emissions", co2e)]
         return output_list
@@ -51,7 +62,7 @@ class AnaerobicDigestion(Field):
             output_list.append(("ad_additional_area", system.time_series["additional_area"]))
             output_list.append(("ad_willow_area", system.time_series["willow_area"]))
 
-        total = super().get_total(output_list, time_span)
+        total = get_total(output_list, time_span)
         output_list.append(("total_ad", total))
 
         return output_list
@@ -65,7 +76,7 @@ class AnaerobicDigestion(Field):
             output_list.append(("ad_additional_biomethane_energy", system.time_series["additional_biomethane_energy"]))
             output_list.append(("ad_willow", system.time_series["willow_willow"]))
 
-        total = super().get_total(output_list, time_span)
+        total = get_total(output_list, time_span)
         output_list.append(("total_ad", total))
 
         return output_list
@@ -79,8 +90,8 @@ class AnaerobicDigestion(Field):
             output_list.append(("ad_ch2_substitution_credit", system.time_series["ch4_substitution_credit"]))
             output_list.append(("ad_n2o_substitution_credit", system.time_series["n2o_substitution_credit"]))
             output_list.append(("ad_additional_co2_emission_credit", system.time_series["additional_co2_emission_credit"]))
-            output_list.append(("ad_willow_lulucf_emission_credit", system.time_series["willow_lulucf_emissions_credit"]))
-            output_list.append(("willow_substitution_credit", system.time_series["willow_substitution_credit"]))
+            output_list.append(("ad_willow_lulucf_emission_credit", system.time_series["willow_lulucf_co2_emissions_credit"]))
+            output_list.append(("willow_substitution_credit", system.time_series["willow_co2_substitution_credit"]))
 
         return output_list
 
@@ -91,10 +102,7 @@ class AnaerobicDigestion(Field):
             output_list.append(("ad_additional_hnv_area", system.time_series["additional_hnv_area"]))
             output_list.append(("ad_willow_hnv_area", system.time_series["willow_hnv_area"]))
 
-        total = super().get_total(output_list, time_span)
+        total = get_total(output_list, time_span)
         output_list.append(("total_ad", total))
 
         return output_list
-
-    def get_net_zero(self, time_span):
-        pass

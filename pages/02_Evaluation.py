@@ -43,6 +43,14 @@ with st.expander("Generated Configuration", expanded=False):
         mime="application/json",
     )
 
+
+st.download_button(
+    label="Download example Excel file",
+    data=optigob.export_time_series(),
+    file_name="exported_time_series.xlsx",
+    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+)
+
 # -------------------------
 # evaluation
 # -------------------------
