@@ -2,8 +2,6 @@ import pandas as pd
 import streamlit as st
 import json
 
-from matplotlib import pyplot as plt
-
 from optigob.optigob import Optigob
 
 st.set_page_config(
