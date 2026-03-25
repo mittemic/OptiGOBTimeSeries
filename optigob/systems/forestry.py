@@ -85,9 +85,6 @@ class Forestry(Field):
 
         return output_list
 
-    def get_protein(self, time_span): pass
-    def get_bio_energy(self, time_span): pass
-
     def get_hwp(self, time_span):
         output_list = []
         for s in self.systems:

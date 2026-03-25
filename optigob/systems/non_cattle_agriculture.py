@@ -93,10 +93,6 @@ class NonCattleAgriculture(Field):
 
         return output_list
 
-    def get_bio_energy(self, time_span): pass
-    def get_hwp(self, time_span): pass
-    def get_substitution(self, time_span): pass
-
     def get_biodiversity(self, time_span):
         output_list = []
         for s in self.systems:

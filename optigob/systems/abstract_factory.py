@@ -149,19 +149,10 @@ class Field(ABC):
 
         return output_list
 
-    @abstractmethod
     def get_protein(self, time_span): pass
-
-    @abstractmethod
     def get_bio_energy(self, time_span): pass
-
-    @abstractmethod
     def get_hwp(self, time_span): pass
-
-    @abstractmethod
     def get_substitution(self, time_span): pass
-
-    @abstractmethod
     def get_biodiversity(self, time_span): pass
 
     def get_net_zero(self, time_span):

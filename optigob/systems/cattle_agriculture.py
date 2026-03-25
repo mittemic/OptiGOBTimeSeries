@@ -150,8 +150,3 @@ class CattleAgriculture(Field):
         output_list.append(("total_" + self.name, total))
 
         return output_list
-
-    def get_bio_energy(self, time_span): pass
-    def get_hwp(self, time_span): pass
-    def get_substitution(self, time_span): pass
-    def get_biodiversity(self, time_span): pass
