@@ -53,6 +53,10 @@ class DatabaseManager:
                                organic_soil_frac=0.15,
                                harvest="high",
                                ccs=True):
+
+        if organic_soil_frac == 0:
+            organic_soil_frac = "0"
+
         query = """
             SELECT
                 area, 
