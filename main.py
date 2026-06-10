@@ -3,6 +3,11 @@ import json
 from optigob.optigob import Optigob
 from configuration.keys import *
 
+from moo.nsga2 import run_nsga2
+
+run_nsga2()
+exit()
+
 config_file_path = "configuration/config.json"
 db_file_path = "data/database.db"
 

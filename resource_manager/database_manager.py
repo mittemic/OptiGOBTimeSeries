@@ -52,7 +52,7 @@ class DatabaseManager:
                                broadleaf_frac=0.5,
                                organic_soil_frac=0.15,
                                harvest="high",
-                               ccs="yes"):
+                               ccs=True):
         query = """
             SELECT
                 area, 
