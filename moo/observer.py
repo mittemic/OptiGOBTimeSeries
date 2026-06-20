@@ -5,10 +5,11 @@ import csv
 
 class MOO_Observer(Observer):
 
-    def __init__(self, population_size, on_generation=None):
+    def __init__(self, population_size, on_generation=None, upper_bound=None):
         super().__init__()
         self.population_size = population_size
-        self.on_generation = on_generation  # optional callable(generation_number)
+        self.on_generation = on_generation
+        self.upper_bound = upper_bound
 
     def update(self, *args, **kwargs):
 
@@ -32,7 +33,7 @@ class MOO_Observer(Observer):
 
             for solution in pareto_front:
                 vars_list = list(solution.variables)
-                heal_variables(vars_list)
+                heal_variables(vars_list, self.upper_bound)
                 writer.writerow([solution.objectives[0], solution.objectives[1], solution.objectives[2], solution.objectives[3], build_json_config(vars_list)])
 
         if self.on_generation is not None:

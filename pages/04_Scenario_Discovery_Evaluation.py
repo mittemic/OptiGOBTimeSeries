@@ -4,7 +4,6 @@ import json
 import os
 import re
 import altair as alt
-import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import streamlit as st
@@ -303,52 +302,90 @@ with tab2:
 
     df_full = load_generation_with_json(cf_gen, n_files)
 
-    display_df = df_full[OBJECTIVES].copy()
-    for col in OBJECTIVES:
-        display_df[col] = display_df[col].map(lambda x: f"{x:.3e}")
-    display_df.index = range(1, len(display_df) + 1)
-    display_df.columns = [LABELS[c] for c in OBJECTIVES]
+    # --- Objective filter sliders ---
+    st.divider()
+    st.markdown("**Filter by objective range:**")
 
-    st.markdown(
-        f"**{len(display_df)} Pareto-optimal solutions** — select a row to inspect its configuration."
-    )
+    filter_cols = st.columns(2)
+    filters = {}
+    for i, obj in enumerate(OBJECTIVES):
+        col_min = float(df_full[obj].min())
+        col_max = float(df_full[obj].max())
+        with filter_cols[i % 2]:
+            if abs(col_max - col_min) < 1e-12:
+                st.caption(f"{LABELS[obj]}: {col_min:.3e} (single value)")
+                filters[obj] = (col_min, col_max)
+            else:
+                lo, hi = st.slider(
+                    LABELS[obj],
+                    min_value=col_min,
+                    max_value=col_max,
+                    value=(col_min, col_max),
+                    format="%.3e",
+                    key=f"cf_{obj}_{cf_gen}",
+                )
+                filters[obj] = (lo, hi)
 
-    event = st.dataframe(
-        display_df,
-        use_container_width=True,
-        on_select="rerun",
-        selection_mode="single-row",
-    )
+    # --- Apply filters ---
+    mask = pd.Series([True] * len(df_full), index=df_full.index)
+    for obj, (lo, hi) in filters.items():
+        mask = mask & (df_full[obj] >= lo) & (df_full[obj] <= hi)
+    df_filtered = df_full[mask].reset_index(drop=True)
 
-    selected_rows = event.selection.rows
-    if selected_rows:
-        idx = selected_rows[0]
-        row = df_full.iloc[idx]
+    n_filtered = len(df_filtered)
+    n_total = len(df_full)
 
-        st.divider()
-        st.subheader(f"Solution {idx + 1}")
+    # --- Filtered solution table ---
+    st.divider()
+    st.markdown(f"**{n_filtered} of {n_total} solutions** match the current filters.")
 
-        m1, m2, m3, m4 = st.columns(4)
-        m1.metric(LABELS["co2e"], f"{row['co2e']:.3e}")
-        m2.metric(LABELS["hnv"], f"{row['hnv']:.3e}")
-        m3.metric(LABELS["protein"], f"{row['protein']:.3e}")
-        m4.metric(LABELS["hwp"], f"{row['hwp']:.3e}")
-
-        try:
-            config_dict = ast.literal_eval(row["json"])
-        except Exception:
-            config_dict = row["json"]
-
-        with st.expander("Full JSON Configuration", expanded=True):
-            st.json(config_dict)
-            st.download_button(
-                label="Download configuration",
-                data=json.dumps(config_dict, indent=2),
-                file_name=f"solution_gen{cf_gen}_{idx + 1}.json",
-                mime="application/json",
-            )
+    if n_filtered == 0:
+        st.warning("No solutions match the current filters — adjust the sliders above.")
     else:
-        st.info("Click a row in the table above to view its full configuration.")
+        display_df = df_filtered[OBJECTIVES].copy()
+        for col in OBJECTIVES:
+            display_df[col] = display_df[col].map(lambda x: f"{x:.3e}")
+        display_df.index = range(1, len(display_df) + 1)
+        display_df.columns = [LABELS[c] for c in OBJECTIVES]
+
+        cf_event = st.dataframe(
+            display_df,
+            use_container_width=True,
+            on_select="rerun",
+            selection_mode="single-row",
+        )
+
+        # --- Selected solution detail ---
+        selected_rows = cf_event.selection.rows
+        if selected_rows:
+            idx = selected_rows[0]
+            row = df_filtered.iloc[idx]
+
+            st.divider()
+            st.subheader(f"Solution {idx + 1}")
+
+            m1, m2, m3, m4 = st.columns(4)
+            m1.metric(LABELS["co2e"], f"{row['co2e']:.3e}")
+            m2.metric(LABELS["hnv"], f"{row['hnv']:.3e}")
+            m3.metric(LABELS["protein"], f"{row['protein']:.3e}")
+            m4.metric(LABELS["hwp"], f"{row['hwp']:.3e}")
+
+            try:
+                config_dict = ast.literal_eval(row["json"])
+            except Exception:
+                config_dict = row["json"]
+
+            with st.expander("Full JSON Configuration", expanded=True):
+                st.json(config_dict)
+                st.download_button(
+                    label="Download configuration",
+                    data=json.dumps(config_dict, indent=2),
+                    file_name=f"solution_gen{cf_gen}_{idx + 1}.json",
+                    mime="application/json",
+                    key="cf_download_btn",
+                )
+        else:
+            st.info("Select a row in the table to view its full configuration.")
 
 
 # =========================================================
@@ -373,17 +410,9 @@ with tab3:
         improvement = hv_vals[-1] - hv_vals[0]
         col_c.metric("Improvement", f"{improvement:+.4f}")
 
-        fig3, ax3 = plt.subplots(figsize=(10, 5))
-        ax3.plot(hv_gens, hv_vals, marker="o", markersize=3, linewidth=1.5, color="steelblue")
-        ax3.fill_between(hv_gens, hv_vals, alpha=0.15, color="steelblue")
-        ax3.set_xlabel("Generation")
-        ax3.set_ylabel("Hypervolume Indicator (normalised)")
-        ax3.set_title("Hypervolume Indicator Over Generations")
-        ax3.grid(True, alpha=0.3)
-        plt.tight_layout()
-
-        st.pyplot(fig3)
-        plt.close(fig3)
+        hv_chart_df = pd.DataFrame({"Hypervolume": hv_vals}, index=hv_gens)
+        hv_chart_df.index.name = "Generation"
+        st.line_chart(hv_chart_df, x_label="Generation", y_label="Hypervolume Indicator (normalised)")
 
         st.divider()
         hv_df = pd.DataFrame({"Generation": hv_gens, "Hypervolume": hv_vals})

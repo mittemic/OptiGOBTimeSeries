@@ -12,17 +12,22 @@ _WAYPOINT_GROUPS = [
     (43, 48, 53), (58, 60, 62), (64, 66, 68), (70, 72, 74), (77, 80, 82),
 ]
 
-def heal_variables(variables):
+DEFAULT_LOWER_BOUND = [0,0,0,0,0,0,0,min_year,0,0,min_year,0,0,min_year,0,0,min_year,0,0,min_year,0,0,min_year,0,0,min_year,0,0,min_year,0,0,min_year,0,0,min_year,0,0,min_year,0,0,min_year,0,0,min_year,0,0,0,0,min_year,0,0,0,0,min_year,0,0,0,0,min_year,0,min_year,0,min_year,0,min_year,0,min_year,0,min_year,0,min_year,0,min_year,0,min_year,0,0,min_year,0,0,min_year,0,min_year]
+DEFAULT_UPPER_BOUND = [1,1,1,1,20,1,1,max_year,2,200,max_year,2,200,max_year,2,200,max_year,2,200,max_year,2,200,max_year,2,200,max_year,2,200,max_year,2,200,max_year,2,200,max_year,2,200,max_year,2,200,max_year,2,200,max_year,2,200,2,2,max_year,2,200,2,2,max_year,2,200,2,2,max_year,100,max_year,100,max_year,100,max_year,100,max_year,100,max_year,100,max_year,100,max_year,100,max_year,100,1,max_year,1,20000,max_year,20000,max_year]
+
+
+def heal_variables(variables, upper_bound=None):
     """Enforce strictly-increasing waypoint years within each system group.
     Modifies the list in-place and returns it. Safe to call on already-healed variables."""
     for wpi1, wpi2, wpi3 in _WAYPOINT_GROUPS:
+        ub3 = upper_bound[wpi3] if upper_bound is not None else max_year
         temp = sorted([variables[wpi1], variables[wpi2], variables[wpi3]])
         temp[1] = max(temp[1], temp[0] + 1)
         temp[2] = max(temp[2], temp[1] + 1)
-        if temp[2] > max_year:
-            temp[2] = max_year
-            temp[1] = min(temp[1], max_year - 1)
-            temp[0] = min(temp[0], max_year - 2)
+        if temp[2] > ub3:
+            temp[2] = ub3
+            temp[1] = min(temp[1], ub3 - 1)
+            temp[0] = min(temp[0], ub3 - 2)
         variables[wpi1] = temp[0]
         variables[wpi2] = temp[1]
         variables[wpi3] = temp[2]
@@ -30,11 +35,10 @@ def heal_variables(variables):
 
 
 class Optigob_Problem(IntegerProblem):
-    def __init__(self):
+    def __init__(self, lower_bound=None, upper_bound=None):
         super().__init__()
-
-        self.lower_bound = [0,0,0,0,0,0,0,min_year,0,0,min_year,0,0,min_year,0,0,min_year,0,0,min_year,0,0,min_year,0,0,min_year,0,0,min_year,0,0,min_year,0,0,min_year,0,0,min_year,0,0,min_year,0,0,min_year,0,0,0,0,min_year,0,0,0,0,min_year,0,0,0,0,min_year,0,min_year,0,min_year,0,min_year,0,min_year,0,min_year,0,min_year,0,min_year,0,min_year,0,0,min_year,0,0,min_year,0,min_year]
-        self.upper_bound = [1,1,1,1,20,1,1,max_year,2,200,max_year,2,200,max_year,2,200,max_year,2,200,max_year,2,200,max_year,2,200,max_year,2,200,max_year,2,200,max_year,2,200,max_year,2,200,max_year,2,200,max_year,2,200,max_year,2,200,2,2,max_year,2,200,2,2,max_year,2,200,2,2,max_year,100,max_year,100,max_year,100,max_year,100,max_year,100,max_year,100,max_year,100,max_year,100,max_year,100,1,max_year,1,20000,max_year,20000,max_year]
+        self.lower_bound = list(lower_bound) if lower_bound is not None else list(DEFAULT_LOWER_BOUND)
+        self.upper_bound = list(upper_bound) if upper_bound is not None else list(DEFAULT_UPPER_BOUND)
 
     def number_of_objectives(self) -> int:
         return 4
@@ -62,7 +66,7 @@ class Optigob_Problem(IntegerProblem):
 
     def heal(self, solution):
         vars_list = list(solution.variables)
-        heal_variables(vars_list)
+        heal_variables(vars_list, self.upper_bound)
         solution.variables = vars_list
         return solution
 
