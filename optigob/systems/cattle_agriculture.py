@@ -89,6 +89,8 @@ class CattleAgriculture(Field):
                 limit = baseline * waypoint.scaler
 
             budget = limit - nca_values[waypoint.year - baseline_year]
+            if budget < 0:
+                budget = 0
             current_dairy = self.systems[0].get_parameters_by_index(-1)
             current_beef = self.systems[1].get_parameters_by_index(-1)
 

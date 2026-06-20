@@ -1,10 +1,12 @@
 import streamlit as st
 
-st.set_page_config(page_title="Optigob Interface", layout="wide")
-
-st.title("Optigob Interface")
-
-st.markdown("This is a beta version of time series-focussed Optigob in its validation stage. For the currently released version, please visit [https://goblin.cs.universityofgalway.ie/](https://goblin.cs.universityofgalway.ie/).")
-
-if st.button("Configure Optigob Scenario"):
-    st.switch_page("pages/01_Configuration.py")
+pg = st.navigation(
+    [
+        st.Page("pages/00_Home.py", title="Home", icon="🏠", default=True),
+        st.Page("pages/01_Configuration.py", title="Manual Configuration", icon="⚙️"),
+        st.Page("pages/02_Evaluation.py", title="Configuration Analysis", icon="📊"),
+        st.Page("pages/03_Scenario_Discovery.py", title="Scenario Discovery", icon="🔍"),
+        st.Page("pages/04_Scenario_Discovery_Evaluation.py", title="Scenario Discovery Evaluation", icon="📈"),
+    ]
+)
+pg.run()

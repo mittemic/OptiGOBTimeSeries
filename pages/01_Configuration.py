@@ -1,8 +1,6 @@
 import streamlit as st
 import json
 
-st.set_page_config(page_title="Scenario Configuration Builder", layout="wide")
-
 st.title("Scenario Configuration Builder")
 
 # -------------------------

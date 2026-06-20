@@ -4,38 +4,68 @@ from jmetal.core.solution import IntegerSolution
 from configuration.keys import *
 from optigob.optigob import Optigob
 
+max_year = 212
+min_year = 203
+
+_WAYPOINT_GROUPS = [
+    (7, 10, 13), (16, 19, 22), (25, 28, 31), (34, 37, 40),
+    (43, 48, 53), (58, 60, 62), (64, 66, 68), (70, 72, 74), (77, 80, 82),
+]
+
+def heal_variables(variables):
+    """Enforce strictly-increasing waypoint years within each system group.
+    Modifies the list in-place and returns it. Safe to call on already-healed variables."""
+    for wpi1, wpi2, wpi3 in _WAYPOINT_GROUPS:
+        temp = sorted([variables[wpi1], variables[wpi2], variables[wpi3]])
+        temp[1] = max(temp[1], temp[0] + 1)
+        temp[2] = max(temp[2], temp[1] + 1)
+        if temp[2] > max_year:
+            temp[2] = max_year
+            temp[1] = min(temp[1], max_year - 1)
+            temp[0] = min(temp[0], max_year - 2)
+        variables[wpi1] = temp[0]
+        variables[wpi2] = temp[1]
+        variables[wpi3] = temp[2]
+    return variables
+
 
 class Optigob_Problem(IntegerProblem):
     def __init__(self):
         super().__init__()
 
-        self.lower_bound = [0,0,0,0,0,0,0,203,0,0,203,0,0,203,0,0,203,0,0,203,0,0,203,0,0,203,0,0,203,0,0,203,0,0,203,0,0,203,0,0,203,0,0,203,0,0,0,0,203,0,0,0,0,203,0,0,0,0,203,0,203,0,203,0,203,0,203,0,203,0,203,0,203,0,203,0,0,203,0,0,203,0,203]
-        self.upper_bound = [1,1,1,1,20,1,1,212,2,200,212,2,200,212,2,200,212,2,200,212,2,200,212,2,200,212,2,200,212,2,200,212,2,200,212,2,200,212,2,200,212,2,200,212,2,200,2,2,212,2,200,2,2,212,2,200,2,2,212,100,212,100,212,100,212,100,212,100,212,100,212,100,212,100,212,100,1,212,1,20000,212,20000,212]
+        self.lower_bound = [0,0,0,0,0,0,0,min_year,0,0,min_year,0,0,min_year,0,0,min_year,0,0,min_year,0,0,min_year,0,0,min_year,0,0,min_year,0,0,min_year,0,0,min_year,0,0,min_year,0,0,min_year,0,0,min_year,0,0,0,0,min_year,0,0,0,0,min_year,0,0,0,0,min_year,0,min_year,0,min_year,0,min_year,0,min_year,0,min_year,0,min_year,0,min_year,0,min_year,0,0,min_year,0,0,min_year,0,min_year]
+        self.upper_bound = [1,1,1,1,20,1,1,max_year,2,200,max_year,2,200,max_year,2,200,max_year,2,200,max_year,2,200,max_year,2,200,max_year,2,200,max_year,2,200,max_year,2,200,max_year,2,200,max_year,2,200,max_year,2,200,max_year,2,200,2,2,max_year,2,200,2,2,max_year,2,200,2,2,max_year,100,max_year,100,max_year,100,max_year,100,max_year,100,max_year,100,max_year,100,max_year,100,max_year,100,1,max_year,1,20000,max_year,20000,max_year]
 
     def number_of_objectives(self) -> int:
         return 4
 
     def number_of_constraints(self) -> int:
-        return 18
+        return 0
 
     def evaluate(self, solution: IntegerSolution) -> IntegerSolution:
+        solution = self.heal(solution)
         json_config = build_json_config(solution.variables)
 
         optigob = Optigob(json_config=json_config, db_file_path="data/database.db")
         optigob.run()
 
         solution.objectives[0] = get_objective(optigob=optigob, parameter=CO2E, filter="net_zero_co2e")
-        solution.objectives[1] = get_objective(optigob=optigob, parameter=BIODIVERSITY)
-        solution.objectives[2] = get_objective(optigob=optigob, parameter=PROTEIN)
-        solution.objectives[3] = get_objective(optigob=optigob, parameter=HWP)
-
-        solution = validate_constraints(solution)
+        solution.objectives[1] = -get_objective(optigob=optigob, parameter=BIODIVERSITY)
+        solution.objectives[2] = -get_objective(optigob=optigob, parameter=PROTEIN)
+        solution.objectives[3] = -get_objective(optigob=optigob, parameter=HWP)
 
         return solution
 
 
     def name(self) -> str:
         return "Optigob_Problem"
+
+    def heal(self, solution):
+        vars_list = list(solution.variables)
+        heal_variables(vars_list)
+        solution.variables = vars_list
+        return solution
+
 
 def build_json_config(solution):
 
@@ -389,27 +419,6 @@ def build_json_config(solution):
         json_config["ad_emissions"] = ad_emissions
 
     return json_config
-
-def validate_constraints(solution):
-    solution.constraints[0] = solution.variables[10] - solution.variables[7]
-    solution.constraints[1] = solution.variables[13] - solution.variables[10]
-    solution.constraints[2] = solution.variables[19] - solution.variables[16]
-    solution.constraints[3] = solution.variables[22] - solution.variables[19]
-    solution.constraints[4] = solution.variables[28] - solution.variables[25]
-    solution.constraints[5] = solution.variables[31] - solution.variables[28]
-    solution.constraints[6] = solution.variables[37] - solution.variables[34]
-    solution.constraints[7] = solution.variables[40] - solution.variables[37]
-    solution.constraints[8] = solution.variables[48] - solution.variables[43]
-    solution.constraints[9] = solution.variables[53] - solution.variables[48]
-    solution.constraints[10] = solution.variables[60] - solution.variables[58]
-    solution.constraints[11] = solution.variables[62] - solution.variables[60]
-    solution.constraints[12] = solution.variables[66] - solution.variables[64]
-    solution.constraints[13] = solution.variables[68] - solution.variables[66]
-    solution.constraints[14] = solution.variables[72] - solution.variables[70]
-    solution.constraints[15] = solution.variables[74] - solution.variables[72]
-    solution.constraints[16] = solution.variables[80] - solution.variables[77]
-    solution.constraints[17] = solution.variables[82] - solution.variables[80]
-    return solution
 
 def get_objective(optigob, parameter, filter="total_"):
     parameter_list = optigob.get_evaluation(parameter)
