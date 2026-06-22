@@ -175,5 +175,6 @@ def read_animals(excel_path, sqlite_db_path):
     conn.commit()
     conn.close()
 
-read_forestry("../data/forestry.xlsx", "../data/database.db")
-read_animals("../data/animals.xlsx", "../data/database.db")
+if __name__ == "__main__":
+    read_forestry("../data/static_systems.xlsx", "../data/database.db")
+    read_animals("../data/dynamic_systems.xlsx", "../data/database.db")
