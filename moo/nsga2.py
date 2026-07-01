@@ -6,6 +6,9 @@ from jmetal.util.termination_criterion import StoppingByEvaluations
 from moo.observer import MOO_Observer
 from moo.optigob_problem import Optigob_Problem, build_json_config
 
+from moo.optigob_problem import DEFAULT_LOWER_BOUND, DEFAULT_UPPER_BOUND
+
+import os, shutil
 
 def run_nsga2(params=None, on_generation=None):
     """
@@ -21,7 +24,6 @@ def run_nsga2(params=None, on_generation=None):
     lower_bound = params.get("lower_bound") if params else None
     upper_bound = params.get("upper_bound") if params else None
 
-    from moo.optigob_problem import DEFAULT_LOWER_BOUND, DEFAULT_UPPER_BOUND
     if lower_bound is not None:
         lb_changes = [i for i in range(len(DEFAULT_LOWER_BOUND)) if lower_bound[i] != DEFAULT_LOWER_BOUND[i]]
         ub_changes = [i for i in range(len(DEFAULT_UPPER_BOUND)) if upper_bound[i] != DEFAULT_UPPER_BOUND[i]]
@@ -71,16 +73,22 @@ def run_nsga2(params=None, on_generation=None):
     algorithm.observable.register(
         MOO_Observer(population_size, on_generation=on_generation, upper_bound=problem.upper_bound)
     )
+
+    results_dir = "moo/results/"
+    if os.path.exists(results_dir):
+        shutil.rmtree(results_dir)
+    os.makedirs(results_dir)
+
     algorithm.run()
 
     result = algorithm.result()
 
-    print(f"Number of solutions: {len(result)}")
-    for solution in result:
-        print(
-            f"Objectives: {solution.objectives}, "
-            f"Variables: {solution.variables[:3]}, "
-            f"Config: {build_json_config(solution.variables)}"
-        )
+    #print(f"Number of solutions: {len(result)}")
+    #for solution in result:
+    #    print(
+    #        f"Objectives: {solution.objectives}, "
+    #        f"Variables: {solution.variables[:3]}, "
+    #        f"Config: {build_json_config(solution.variables)}"
+    #    )
 
     return result
