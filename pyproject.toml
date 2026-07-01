@@ -1,0 +1,23 @@
+[tool.poetry]
+name = "optigob_app"
+version = "0.1.1"
+description = "A Streamlit dashboard for OptiGob"
+authors = ["Your Name <your@email.com>"]
+
+[tool.poetry.dependencies]
+python = "^3.14"
+streamlit = "^1.55.0"
+plotly="6.1.2"
+matplotlib = "3.10.8"
+numpy = "2.4.2"
+openpyxl = "3.1.5"
+pandas = "2.3.3"
+jmetalpy = "1.9.0"
+
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.2.0"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
