@@ -1,11 +1,17 @@
 import json
 
+import moo.test_run_nsga2
 from optigob.optigob import Optigob
 from configuration.keys import *
 
 from moo.nsga2 import run_nsga2
 
-run_nsga2()
+import moo.tune_hyperparams
+
+#run_nsga2()
+
+moo.tune_hyperparams.main()
+
 exit()
 
 config_file_path = "configuration/config.json"

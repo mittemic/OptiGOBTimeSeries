@@ -8,7 +8,12 @@ from itertools import combinations
 
 RESULTS_DIR = os.path.join(os.path.dirname(__file__), "results")
 
-OBJECTIVES = ["co2e", "hnv", "protein", "hwp"]
+# Full set of objective keys the optimiser can produce. A given results directory
+# only contains whichever of these were selected on the Scenario Discovery page;
+# load_all_generations() detects the actual set from the CSV header and rebinds
+# the OBJECTIVES global below before any plot_* function runs.
+ALL_OBJECTIVES = ["co2e", "hnv", "protein", "hwp"]
+OBJECTIVES = list(ALL_OBJECTIVES)
 LABELS = {
     "co2e": "Net Zero CO2e",
     "hnv": "Biodiversity (HNV)",
@@ -18,27 +23,50 @@ LABELS = {
 
 
 def load_all_generations() -> dict[int, pd.DataFrame]:
+    global OBJECTIVES
     pattern = re.compile(r"gen(\d+)_pareto\.csv$")
     generations = {}
+    detected = None
     for fname in os.listdir(RESULTS_DIR):
         m = pattern.match(fname)
         if m:
             gen = int(m.group(1))
-            df = pd.read_csv(os.path.join(RESULTS_DIR, fname), usecols=OBJECTIVES)
+            path = os.path.join(RESULTS_DIR, fname)
+            if detected is None:
+                header = pd.read_csv(path, nrows=0).columns.tolist()
+                detected = [c for c in header if c in ALL_OBJECTIVES]
+            df = pd.read_csv(path, usecols=detected)
             generations[gen] = df
+    if detected is not None:
+        OBJECTIVES = detected
     return dict(sorted(generations.items()))
+
+
+def _pair_grid_shape(n_pairs: int) -> tuple[int, int]:
+    """Rows/cols for a grid of n_pairs subplots, capped at 3 columns."""
+    ncols = min(3, n_pairs)
+    nrows = -(-n_pairs // ncols)  # ceil division
+    return nrows, ncols
 
 
 def plot_final_pareto(df: pd.DataFrame, generation: int) -> None:
     pairs = list(combinations(OBJECTIVES, 2))
-    fig, axes = plt.subplots(2, 3, figsize=(15, 9))
+    if not pairs:
+        print(f"Only one objective ({LABELS[OBJECTIVES[0]]}) was optimised — no pairwise Pareto front to plot.")
+        return
+
+    nrows, ncols = _pair_grid_shape(len(pairs))
+    fig, axes = plt.subplots(nrows, ncols, figsize=(5 * ncols, 4.5 * nrows), squeeze=False)
     fig.suptitle(f"Pareto Front — Generation {generation}", fontsize=14)
 
-    for ax, (x_col, y_col) in zip(axes.flat, pairs):
+    flat_axes = axes.flatten().tolist()
+    for ax, (x_col, y_col) in zip(flat_axes, pairs):
         ax.scatter(df[x_col], df[y_col], s=30, alpha=0.7, edgecolors="none")
         ax.set_xlabel(LABELS[x_col], fontsize=9)
         ax.set_ylabel(LABELS[y_col], fontsize=9)
         ax.ticklabel_format(style="sci", axis="both", scilimits=(0, 0))
+    for ax in flat_axes[len(pairs):]:
+        ax.set_visible(False)
 
     plt.tight_layout()
     plt.savefig(os.path.join(RESULTS_DIR, f"pareto_gen{generation}.png"), dpi=150)
@@ -51,7 +79,12 @@ def plot_evolution(generations: dict[int, pd.DataFrame]) -> None:
     color_map = {g: c for g, c in zip(gen_numbers, colors)}
 
     pairs = list(combinations(OBJECTIVES, 2))
-    fig, axes = plt.subplots(2, 3, figsize=(15, 9))
+    if not pairs:
+        print(f"Only one objective ({LABELS[OBJECTIVES[0]]}) was optimised — no pairwise evolution plot to draw.")
+        return
+
+    nrows, ncols = _pair_grid_shape(len(pairs))
+    fig, axes = plt.subplots(nrows, ncols, figsize=(5 * ncols, 4.5 * nrows), squeeze=False)
     fig.suptitle("Pareto Front Evolution Across Generations", fontsize=14)
 
     all_axes = axes.flatten().tolist()
@@ -67,6 +100,8 @@ def plot_evolution(generations: dict[int, pd.DataFrame]) -> None:
         ax.set_xlabel(LABELS[x_col], fontsize=9)
         ax.set_ylabel(LABELS[y_col], fontsize=9)
         ax.ticklabel_format(style="sci", axis="both", scilimits=(0, 0))
+    for ax in all_axes[len(pairs):]:
+        ax.set_visible(False)
 
     sm = cm.ScalarMappable(
         cmap="viridis",
@@ -201,7 +236,7 @@ def plot_gen100_pareto(generations: dict[int, pd.DataFrame], target_gen: int = 1
 
     df = generations[target_gen]
     d = len(OBJECTIVES)
-    fig, axes = plt.subplots(d, d, figsize=(14, 13))
+    fig, axes = plt.subplots(d, d, figsize=(14, 13), squeeze=False)
     fig.suptitle(f"Pareto Front — Generation {target_gen}  ({len(df)} solutions)", fontsize=14)
 
     for row in range(d):

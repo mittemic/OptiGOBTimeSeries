@@ -202,10 +202,10 @@ with st.expander("Afforestation", expanded=False):
     af_ccs = st.checkbox("CCS", value=False, key="af_ccs")
     af_rate = st.number_input(
         "Afforestation rate (x1,000 ha/y)",
-        min_value=0.0,
-        max_value=30.0,
-        step=0.5,
-        value=1.0,
+        min_value=0,
+        max_value=30,
+        step=1,
+        value=1,
     )
     bl_ratio = st.selectbox(
         "Broadleaf / Conifer ratio",

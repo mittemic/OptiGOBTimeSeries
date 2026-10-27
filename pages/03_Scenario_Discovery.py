@@ -1,16 +1,15 @@
 import glob
 import os
 import threading
-import time
 
 import streamlit as st
 
-from moo.optigob_problem import DEFAULT_LOWER_BOUND, DEFAULT_UPPER_BOUND
+from moo.optigob_problem2 import DEFAULT_LOWER_BOUND, DEFAULT_UPPER_BOUND, DEFAULT_INDICES
 
 RESULTS_DIR = "moo/results"
 
 DEFAULTS = {
-    "sd_population_size": 100,
+    "sd_population_size": 300,
     "sd_n_generations": 100,
     "sd_mutation_probability": 0.01,
     "sd_mutation_distribution_index": 20,
@@ -22,147 +21,101 @@ DEFAULTS = {
 # Variable metadata
 # Each entry: (raw_index, display_label, vtype)
 # vtype controls display scale / slider step:
-#   "year"      raw * 10 = actual year  (2030–2120, step 10)
-#   "scaler"    raw / 100 = 0.00–2.00  (step 0.01)
-#   "rate"      raw / 2  = 0–10 %/yr   (step 0.5)
-#   "rewetting" raw / 100 = 0.00–1.00  (step 0.01)
-#   "biomethane" raw as-is 0–20 000    (step 100)
-#   "cat2"      integer 0–1            (step 1)
-#   "cat3"      integer 0–2            (step 1)
+#   "year"       raw as-is = actual year  (2030-2050, step 1)
+#   "scaler"     raw / 100 = 0.00-2.00    (step 0.01)
+#   "rate"       raw as-is, integer (step 1, upper bound set by DEFAULT_UPPER_BOUND)
+#   "rewetting"  raw / 100 = 0.00-1.00    (step 0.01)
+#   "biomethane" raw * 1000 = 0-20 000    (step 1000)
+#   "cat2"       integer 0-1              (step 1)
+#   "cat3"       integer 0-2              (step 1)
+#
+# optigob_problem2 collapses each system to a single waypoint (fixed at year
+# 2050) except AD emissions, which keeps three independent years. Indices are
+# looked up by name via DEFAULT_INDICES rather than hardcoded, since the raw
+# position of each variable is an implementation detail of optigob_problem2.
 # ---------------------------------------------------------------------------
+
+def _idx(name):
+    return DEFAULT_INDICES.index(name)
 
 VARIABLE_GROUPS = [
     {
         "name": "Forestry",
         "vars": [
-            (0, "Existing forest harvest (0=low, 1=high)", "cat2"),
-            (1, "Existing forest CCS (0=off, 1=on)", "cat2"),
-            (2, "Afforestation harvest (0=low, 1=high)", "cat2"),
-            (3, "Afforestation CCS (0=off, 1=on)", "cat2"),
-            (4, "Afforestation rate", "rate"),
-            (5, "Broadleaf fraction (0=50%, 1=30%)", "cat2"),
-            (6, "Organic soil fraction (0=15%, 1=0%)", "cat2"),
+            (_idx("ef_harvest"), "Existing forest harvest (0=low, 1=high)", "cat2"),
+            (_idx("ef_ccs"), "Existing forest CCS (0=off, 1=on)", "cat2"),
+            (_idx("af_harvest"), "Afforestation harvest (0=low, 1=high)", "cat2"),
+            (_idx("af_ccs"), "Afforestation CCS (0=off, 1=on)", "cat2"),
+            (_idx("af_rate"), "Afforestation rate", "rate"),
+            (_idx("af_broadleaf"), "Broadleaf fraction (0=50%, 1=30%)", "cat2"),
+            (_idx("af_organic_soil"), "Organic soil fraction (0=15%, 1=0%)", "cat2"),
         ],
     },
     {
         "name": "Pigs",
         "vars": [
-            (7,  "Waypoint 1 year", "year"),
-            (8,  "Waypoint 1 abatement (0=2020 BL, 1=MACC, 2=Frontier)", "cat3"),
-            (9,  "Waypoint 1 scaler", "scaler"),
-            (10, "Waypoint 2 year", "year"),
-            (11, "Waypoint 2 abatement", "cat3"),
-            (12, "Waypoint 2 scaler", "scaler"),
-            (13, "Waypoint 3 year", "year"),
-            (14, "Waypoint 3 abatement", "cat3"),
-            (15, "Waypoint 3 scaler", "scaler"),
+            (_idx("pigs_abatement"), "Abatement (0=2020 BL, 1=MACC, 2=Frontier)", "cat3"),
+            (_idx("pigs_scaler"), "Scaler", "scaler"),
         ],
     },
     {
         "name": "Poultry",
         "vars": [
-            (16, "Waypoint 1 year", "year"),
-            (17, "Waypoint 1 abatement (0=2020 BL, 1=MACC, 2=Frontier)", "cat3"),
-            (18, "Waypoint 1 scaler", "scaler"),
-            (19, "Waypoint 2 year", "year"),
-            (20, "Waypoint 2 abatement", "cat3"),
-            (21, "Waypoint 2 scaler", "scaler"),
-            (22, "Waypoint 3 year", "year"),
-            (23, "Waypoint 3 abatement", "cat3"),
-            (24, "Waypoint 3 scaler", "scaler"),
+            (_idx("poultry_abatement"), "Abatement (0=2020 BL, 1=MACC, 2=Frontier)", "cat3"),
+            (_idx("poultry_scaler"), "Scaler", "scaler"),
         ],
     },
     {
         "name": "Sheep",
         "vars": [
-            (25, "Waypoint 1 year", "year"),
-            (26, "Waypoint 1 abatement (0=2020 BL, 1=MACC, 2=Frontier)", "cat3"),
-            (27, "Waypoint 1 scaler", "scaler"),
-            (28, "Waypoint 2 year", "year"),
-            (29, "Waypoint 2 abatement", "cat3"),
-            (30, "Waypoint 2 scaler", "scaler"),
-            (31, "Waypoint 3 year", "year"),
-            (32, "Waypoint 3 abatement", "cat3"),
-            (33, "Waypoint 3 scaler", "scaler"),
+            (_idx("sheep_abatement"), "Abatement (0=2020 BL, 1=MACC, 2=Frontier)", "cat3"),
+            (_idx("sheep_scaler"), "Scaler", "scaler"),
         ],
     },
     {
         "name": "Crops",
         "vars": [
-            (34, "Waypoint 1 year", "year"),
-            (35, "Waypoint 1 abatement (0=2020 BL, 1=MACC, 2=Frontier)", "cat3"),
-            (36, "Waypoint 1 scaler", "scaler"),
-            (37, "Waypoint 2 year", "year"),
-            (38, "Waypoint 2 abatement", "cat3"),
-            (39, "Waypoint 2 scaler", "scaler"),
-            (40, "Waypoint 3 year", "year"),
-            (41, "Waypoint 3 abatement", "cat3"),
-            (42, "Waypoint 3 scaler", "scaler"),
+            (_idx("crops_abatement"), "Abatement (0=2020 BL, 1=MACC, 2=Frontier)", "cat3"),
+            (_idx("crops_scaler"), "Scaler", "scaler"),
         ],
     },
     {
         "name": "Cattle",
         "vars": [
-            (43, "Waypoint 1 year", "year"),
-            (44, "Waypoint 1 abatement (0=2020 BL, 1=MACC, 2=Frontier)", "cat3"),
-            (45, "Waypoint 1 scaler", "scaler"),
-            (46, "Waypoint 1 dairy productivity (0=2020 Prod, 1=Medium, 2=Strong)", "cat3"),
-            (47, "Waypoint 1 beef productivity (0=2020 Prod, 1=Medium, 2=Strong)", "cat3"),
-            (48, "Waypoint 2 year", "year"),
-            (49, "Waypoint 2 abatement", "cat3"),
-            (50, "Waypoint 2 scaler", "scaler"),
-            (51, "Waypoint 2 dairy productivity", "cat3"),
-            (52, "Waypoint 2 beef productivity", "cat3"),
-            (53, "Waypoint 3 year", "year"),
-            (54, "Waypoint 3 abatement", "cat3"),
-            (55, "Waypoint 3 scaler", "scaler"),
-            (56, "Waypoint 3 dairy productivity", "cat3"),
-            (57, "Waypoint 3 beef productivity", "cat3"),
+            (_idx("cattle_abatement"), "Abatement (0=2020 BL, 1=MACC, 2=Frontier)", "cat3"),
+            (_idx("cattle_scaler"), "Scaler", "scaler"),
+            (_idx("cattle_dairy_prod"), "Dairy productivity (0=2020 Prod, 1=Medium, 2=Strong)", "cat3"),
+            (_idx("cattle_beef_prod"), "Beef productivity (0=2020 Prod, 1=Medium, 2=Strong)", "cat3"),
         ],
     },
     {
         "name": "Organic soil under grass",
         "vars": [
-            (58, "Waypoint 1 year", "year"),
-            (59, "Waypoint 1 rewetting ratio", "rewetting"),
-            (60, "Waypoint 2 year", "year"),
-            (61, "Waypoint 2 rewetting ratio", "rewetting"),
-            (62, "Waypoint 3 year", "year"),
-            (63, "Waypoint 3 rewetting ratio", "rewetting"),
+            (_idx("org_soil_under_grass"), "Rewetting ratio", "rewetting"),
         ],
     },
     {
         "name": "Industrial peat",
         "vars": [
-            (64, "Waypoint 1 year", "year"),
-            (65, "Waypoint 1 rewetting ratio", "rewetting"),
-            (66, "Waypoint 2 year", "year"),
-            (67, "Waypoint 2 rewetting ratio", "rewetting"),
-            (68, "Waypoint 3 year", "year"),
-            (69, "Waypoint 3 rewetting ratio", "rewetting"),
+            (_idx("industrial_peat"), "Rewetting ratio", "rewetting"),
         ],
     },
     {
         "name": "Domestic peat",
         "vars": [
-            (70, "Waypoint 1 year", "year"),
-            (71, "Waypoint 1 rewetting ratio", "rewetting"),
-            (72, "Waypoint 2 year", "year"),
-            (73, "Waypoint 2 rewetting ratio", "rewetting"),
-            (74, "Waypoint 3 year", "year"),
-            (75, "Waypoint 3 rewetting ratio", "rewetting"),
+            (_idx("domestic_peat"), "Rewetting ratio", "rewetting"),
         ],
     },
     {
         "name": "AD Emissions",
         "vars": [
-            (76, "Implementation (0=off, 1=on)", "cat2"),
-            (77, "Implementation year", "year"),
-            (78, "CCS (0=off, 1=on)", "cat2"),
-            (79, "Grass biomethane", "biomethane"),
-            (80, "Additional biomethane year", "year"),
-            (81, "CO2 removal", "biomethane"),
-            (82, "CO2 removal year", "year"),
+            (_idx("ad_impl"), "Implementation (0=off, 1=on)", "cat2"),
+            (_idx("ad_impl_year"), "Implementation year", "year"),
+            (_idx("ad_ccs"), "CCS (0=off, 1=on)", "cat2"),
+            (_idx("ad_add_biomethane"), "Grass biomethane", "biomethane"),
+            (_idx("ad_add_biomethane_year"), "Additional biomethane year", "year"),
+            (_idx("ad_co2_removal"), "CO2 removal", "biomethane"),
+            (_idx("ad_co2_removal_year"), "CO2 removal year", "year"),
         ],
     },
 ]
@@ -173,25 +126,29 @@ VARIABLE_GROUPS = [
 
 def _to_display(raw, vtype):
     if vtype == "year":
-        return int(raw) * 10
+        return int(raw)
     if vtype == "scaler":
         return round(int(raw) / 100, 2)
     if vtype == "rate":
-        return round(int(raw) / 2, 1)
+        return int(raw)
     if vtype == "rewetting":
         return round(int(raw) / 100, 2)
-    return int(raw)  # biomethane, cat2, cat3
+    if vtype == "biomethane":
+        return int(raw) * 1000
+    return int(raw)  # cat2, cat3
 
 
 def _to_raw(display, vtype):
     if vtype == "year":
-        return int(display) // 10
+        return int(display)
     if vtype == "scaler":
         return round(display * 100)
     if vtype == "rate":
-        return round(display * 2)
+        return int(display)
     if vtype == "rewetting":
         return round(display * 100)
+    if vtype == "biomethane":
+        return round(display / 1000)
     return int(display)
 
 
@@ -199,15 +156,15 @@ def _slider_kwargs(vtype, abs_lo_raw, abs_hi_raw):
     abs_lo = _to_display(abs_lo_raw, vtype)
     abs_hi = _to_display(abs_hi_raw, vtype)
     if vtype == "year":
-        return dict(min_value=abs_lo, max_value=abs_hi, step=10)
+        return dict(min_value=abs_lo, max_value=abs_hi, step=1)
     if vtype == "scaler":
         return dict(min_value=abs_lo, max_value=abs_hi, step=0.01)
     if vtype == "rate":
-        return dict(min_value=abs_lo, max_value=abs_hi, step=0.5)
+        return dict(min_value=abs_lo, max_value=abs_hi, step=1)
     if vtype == "rewetting":
         return dict(min_value=abs_lo, max_value=abs_hi, step=0.01)
     if vtype == "biomethane":
-        return dict(min_value=abs_lo, max_value=abs_hi, step=100)
+        return dict(min_value=abs_lo, max_value=abs_hi, step=1000)
     return dict(min_value=abs_lo, max_value=abs_hi, step=1)  # cat2 / cat3
 
 # ---------------------------------------------------------------------------
@@ -222,8 +179,13 @@ for _key, _val in [("moo_running", False), ("moo_progress", {}), ("moo_thread", 
 # Progress view (shown while algorithm runs)
 # ---------------------------------------------------------------------------
 
-if st.session_state["moo_running"]:
-    st.title("Scenario Discovery")
+@st.fragment(run_every="1s")
+def _progress_fragment():
+    # Auto-refreshing in isolation (rather than blocking the whole script with
+    # time.sleep() + a manual st.rerun() every second) is what keeps this from
+    # racing with the rest of the page — the old blocking-loop version could
+    # leave stray Optimisation Parameters / Variable Bounds widgets rendered
+    # alongside the progress view if a widget interaction landed mid-sleep.
     progress = st.session_state["moo_progress"]
     current = progress.get("current", 0)
     total = progress.get("total", 1)
@@ -232,7 +194,7 @@ if st.session_state["moo_running"]:
     if error:
         st.error(f"Optimisation failed: {error}")
         st.session_state["moo_running"] = False
-        st.stop()
+        st.rerun()  # scope="app" (default) — exits the running branch entirely
 
     st.subheader("Running Optimisation…")
     st.progress(current / total if total > 0 else 0)
@@ -252,10 +214,11 @@ if st.session_state["moo_running"]:
         st.session_state["moo_running"] = False
         st.session_state["moo_thread"] = None
         st.switch_page("pages/04_Scenario_Discovery_Evaluation.py")
-    else:
-        time.sleep(1)
-        st.rerun()
 
+
+if st.session_state["moo_running"]:
+    st.title("Scenario Discovery")
+    _progress_fragment()
     st.stop()
 
 # ---------------------------------------------------------------------------
@@ -267,6 +230,37 @@ st.markdown(
     "Configure the parameters for the multi-objective optimisation (NSGA-II) and "
     "launch a discovery run to explore the Pareto-optimal scenario space."
 )
+
+# ---------------------------------------------------------------------------
+# Optimisation goals
+# ---------------------------------------------------------------------------
+
+st.header("Optimisation Goals")
+st.caption(
+    "Choose which objectives to optimise for. NSGA-II will only optimise the objectives "
+    "selected here — results and the evaluation page adapt to however many are picked."
+)
+
+# session_key -> (objective key from optigob_problem2.ALL_OBJECTIVES, display label)
+GOALS = {
+    "goal_co2e": ("co2e", "CO2e"),
+    "goal_biodiversity": ("hnv", "Bio-Diversity"),
+    "goal_protein": ("protein", "Protein"),
+    "goal_hwp": ("hwp", "Harvested Wood Production"),
+}
+
+for _goal_key in GOALS:
+    if _goal_key not in st.session_state:
+        st.session_state[_goal_key] = True
+
+goal_cols = st.columns(4)
+for goal_col, (goal_key, (_, goal_label)) in zip(goal_cols, GOALS.items()):
+    goal_col.checkbox(goal_label, key=goal_key)
+
+selected_goals = [obj_key for goal_key, (obj_key, _) in GOALS.items() if st.session_state[goal_key]]
+
+if not selected_goals:
+    st.warning("Select at least one optimisation goal.")
 
 # ---------------------------------------------------------------------------
 # Algorithm parameters
@@ -413,6 +407,7 @@ st.session_state["moo_params"] = {
     "crossover_distribution_index": int(crossover_distribution_index),
     "lower_bound": list(lo_bounds),
     "upper_bound": list(hi_bounds),
+    "objectives": list(selected_goals),
 }
 
 # ---------------------------------------------------------------------------
@@ -431,10 +426,12 @@ with btn_col1:
         st.session_state.pop("sd_upper_bound", None)
         for idx, _, _ in [v for g in VARIABLE_GROUPS for v in g["vars"]]:
             st.session_state.pop(f"vb_{idx}", None)
+        for goal_key in GOALS:
+            st.session_state.pop(goal_key, None)
         st.rerun()
 
 with btn_col2:
-    if st.button("Run Optimisation ➜"):
+    if st.button("Run Optimisation ➜", disabled=not selected_goals):
         # Clear existing CSV results
         for f in glob.glob(os.path.join(RESULTS_DIR, "*.csv")):
             os.remove(f)

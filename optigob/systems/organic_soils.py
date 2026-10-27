@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 
 from optigob.systems.abstract_factory import Field, WayPointSystem, WayPoint
+from optigob.utils import get_total
 from configuration.keys import *
 
 @dataclass()
@@ -153,5 +154,8 @@ class OrganicSoils(Field):
             assert isinstance(system, OrganicSoilSystem)
             for ds in system.drainage_status:
                 output_list.append((ds + "_" + system.name, system.time_series[ds + "_" + HNV_AREA + "_ratio"]))
+
+        total = get_total(output_list, time_span)
+        output_list.append(("total_" + self.name, total))
 
         return output_list

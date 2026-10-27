@@ -1,15 +1,16 @@
 from jmetal.core.observer import Observer
 from jmetal.util.ranking import FastNonDominatedRanking
-from moo.optigob_problem import build_json_config, heal_variables
+from moo.optigob_problem2 import build_json_config, ALL_OBJECTIVES#, heal_variables
 import csv
 
 class MOO_Observer(Observer):
 
-    def __init__(self, population_size, on_generation=None, upper_bound=None):
+    def __init__(self, population_size, on_generation=None, upper_bound=None, objectives=None):
         super().__init__()
         self.population_size = population_size
         self.on_generation = on_generation
         self.upper_bound = upper_bound
+        self.objectives = list(objectives) if objectives is not None else list(ALL_OBJECTIVES)
 
     def update(self, *args, **kwargs):
 
@@ -29,12 +30,14 @@ class MOO_Observer(Observer):
         with open(pareto_file, "w") as file:
             writer = csv.writer(file)
 
-            writer.writerow(["co2e", "hnv", "protein", "hwp", "json"])
+            writer.writerow(self.objectives + ["json"])
 
             for solution in pareto_front:
                 vars_list = list(solution.variables)
-                heal_variables(vars_list, self.upper_bound)
-                writer.writerow([solution.objectives[0], solution.objectives[1], solution.objectives[2], solution.objectives[3], build_json_config(vars_list)])
+                #heal_variables(vars_list, self.upper_bound)
+                row = [solution.objectives[i] for i in range(len(self.objectives))]
+                row.append(build_json_config(vars_list))
+                writer.writerow(row)
 
         if self.on_generation is not None:
             self.on_generation(generation)

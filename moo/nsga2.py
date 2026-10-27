@@ -1,28 +1,36 @@
-from jmetal.algorithm.multiobjective import NSGAII
+from jmetal.algorithm.multiobjective import NSGAII, NSGAIII
+from jmetal.algorithm.multiobjective.nsgaiii import UniformReferenceDirectionFactory
 from jmetal.operator.crossover import IntegerSBXCrossover
 from jmetal.operator.mutation import IntegerPolynomialMutation
 from jmetal.util.termination_criterion import StoppingByEvaluations
 
 from moo.observer import MOO_Observer
-from moo.optigob_problem import Optigob_Problem, build_json_config
-
-from moo.optigob_problem import DEFAULT_LOWER_BOUND, DEFAULT_UPPER_BOUND
+from moo.optigob_problem2 import Optigob_Problem
+from moo.optigob_problem2 import DEFAULT_LOWER_BOUND, DEFAULT_UPPER_BOUND
 
 import os, shutil
 
-def run_nsga2(params=None, on_generation=None):
+def run_nsga2(params=None, on_generation=None, write_results=True):
     """
     Run NSGA-II.
 
     params: dict with keys population_size, mutation_probability,
             mutation_distribution_index, crossover_probability,
             crossover_distribution_index, max_evaluations,
-            and optionally lower_bound / upper_bound (lists of 83 ints).
-            If None, uses the original hardcoded defaults.
+            and optionally lower_bound / upper_bound (lists of 29 ints)
+            and objectives (list of keys from optigob_problem2.ALL_OBJECTIVES).
+            If None, uses the original hardcoded defaults (all objectives).
     on_generation: optional callable(generation_number) called after each generation.
+    write_results: when True (default), registers the CSV-writing observer and
+            wipes/recreates moo/results/ — this is what the Scenario Discovery UI
+            relies on. Set False for programmatic runs (e.g. hyperparameter tuning)
+            that only care about the returned final population: it skips the CSV
+            writes and, importantly, leaves an existing moo/results/ untouched
+            instead of deleting it on every call.
     """
     lower_bound = params.get("lower_bound") if params else None
     upper_bound = params.get("upper_bound") if params else None
+    objectives = params.get("objectives") if params else None
 
     if lower_bound is not None:
         lb_changes = [i for i in range(len(DEFAULT_LOWER_BOUND)) if lower_bound[i] != DEFAULT_LOWER_BOUND[i]]
@@ -35,14 +43,14 @@ def run_nsga2(params=None, on_generation=None):
     else:
         print("[nsga2] No custom bounds — using problem defaults")
 
-    problem = Optigob_Problem(lower_bound=lower_bound, upper_bound=upper_bound)
-    print(f"[nsga2] Problem created: lower_bound[7]={problem.lower_bound[7]}, upper_bound[7]={problem.upper_bound[7]} (Pigs WP1 year, raw)")
+    problem = Optigob_Problem(lower_bound=lower_bound, upper_bound=upper_bound, objectives=objectives)
+    print(f"[nsga2] Optimising objectives: {problem.objectives}")
 
     if params is None:
-        population_size = 300
-        mutation_probability = 1.0 / float(problem.number_of_variables())
+        population_size = 250
+        mutation_probability = 0.024023206748757395
         mutation_distribution_index = 20
-        crossover_probability = 0.9
+        crossover_probability = 0.9122116705145822
         crossover_distribution_index = 20
         max_evaluations = 30000
     else:
@@ -53,31 +61,56 @@ def run_nsga2(params=None, on_generation=None):
         crossover_distribution_index = params["crossover_distribution_index"]
         max_evaluations = params["max_evaluations"]
 
-    algorithm = NSGAII(
-        problem=problem,
-        population_size=population_size,
-        offspring_population_size=population_size,
-        mutation=IntegerPolynomialMutation(
-            probability=mutation_probability,
-            distribution_index=mutation_distribution_index,
-        ),
-        crossover=IntegerSBXCrossover(
-            probability=crossover_probability,
-            distribution_index=crossover_distribution_index,
-        ),
-        termination_criterion=StoppingByEvaluations(
-            max_evaluations=max_evaluations,
-        ),
-    )
+    if len(problem.objectives) <= 3:
+        algorithm = NSGAII(
+            problem=problem,
+            population_size=population_size,
+            offspring_population_size=population_size,
+            mutation=IntegerPolynomialMutation(
+                probability=mutation_probability,
+                distribution_index=mutation_distribution_index,
+            ),
+            crossover=IntegerSBXCrossover(
+                probability=crossover_probability,
+                distribution_index=crossover_distribution_index,
+            ),
+            termination_criterion=StoppingByEvaluations(
+                max_evaluations=max_evaluations,
+            ),
+        )
+    else:
+        reference_directions = UniformReferenceDirectionFactory(
+            n_dim=len(problem.objectives),
+            n_points=population_size
+        )
 
-    algorithm.observable.register(
-        MOO_Observer(population_size, on_generation=on_generation, upper_bound=problem.upper_bound)
-    )
+        algorithm = NSGAIII(
+            problem=problem,
+            population_size=population_size,
+            reference_directions=reference_directions,
+            mutation=IntegerPolynomialMutation(
+                probability=mutation_probability,
+                distribution_index=mutation_distribution_index,
+            ),
+            crossover=IntegerSBXCrossover(
+                probability=crossover_probability,
+                distribution_index=crossover_distribution_index,
+            ),
+            termination_criterion=StoppingByEvaluations(
+                max_evaluations=max_evaluations,
+            ),
+        )
 
-    results_dir = "moo/results/"
-    if os.path.exists(results_dir):
-        shutil.rmtree(results_dir)
-    os.makedirs(results_dir)
+    if write_results:
+        algorithm.observable.register(
+            MOO_Observer(population_size, on_generation=on_generation, upper_bound=problem.upper_bound,
+                         objectives=problem.objectives)
+        )
+
+        results_dir = "moo/results/"
+        if os.path.exists(results_dir):
+            shutil.rmtree(results_dir)
+        os.makedirs(results_dir)
 
     algorithm.run()
 
